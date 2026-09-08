@@ -1,0 +1,29 @@
+name: todo_sync_app
+description: "A cross-platform Kanban and Todo tool for Linux, Windows, and Android with real-time sync."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  # PocketBase 官方 SDK，支持 REST 和 SSE 实时订阅
+  pocketbase: ^0.19.0
+  # 状态管理
+  provider: ^6.1.2
+  # 日期处理与格式化
+  intl: ^0.19.0
+  # 本地轻量配置（存储服务器地址）
+  shared_preferences: ^2.3.2
+  # 跨平台矢量图标
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true

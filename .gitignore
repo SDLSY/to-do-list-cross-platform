@@ -1,0 +1,25 @@
+# PocketBase 运行时生成数据与二进制
+server/pocketbase
+server/pocketbase.exe
+server/pb_data/
+server/*.log
+server/*.zip
+server/CHANGELOG.md
+server/LICENSE.md
+
+# Flutter / Dart 临时与编译文件
+client/.dart_tool/
+client/.packages
+client/.flutter-plugins
+client/.flutter-plugins-dependencies
+client/build/
+client/android/.gradle/
+client/android/local.properties
+client/android/**/build/
+
+# 编辑器配置
+.idea/
+.vscode/
+*.iml
+*.swp
+.DS_Store
