@@ -893,36 +893,50 @@
         const sseUrl = `${API_BASE}/api/realtime`;
         eventSource = new EventSource(sseUrl);
 
-        eventSource.onopen = function() {
-          console.log('⚡ SSE 长连接已建立通道');
-        };
-
-        eventSource.onmessage = async function(e) {
+        // 监听 PocketBase 专属连接握手事件 PB_CONNECT (关键：必须显式监听该事件名)
+        eventSource.addEventListener('PB_CONNECT', async function(e) {
           try {
             const data = JSON.parse(e.data);
+            sseClientId = data.clientId;
+            console.log('⚡ 成功接收 PB_CONNECT，Client ID:', sseClientId);
 
-            // 收到 PocketBase 连接包：获取 clientId 并发起主题订阅
-            if (data.clientId) {
-              sseClientId = data.clientId;
-              console.log('✅ 获得 SSE Client ID:', sseClientId);
-              await apiRequest('realtime', {
-                method: 'POST',
-                body: JSON.stringify({
-                  clientId: sseClientId,
-                  subscriptions: ['todos']
-                })
-              });
-              setSyncStatus('connected', '实时同步已就绪 (0ms)');
-              return;
-            }
+            // 立即向服务端发送主题订阅
+            await apiRequest('realtime', {
+              method: 'POST',
+              body: JSON.stringify({
+                clientId: sseClientId,
+                subscriptions: ['todos']
+              })
+            });
+            console.log('✅ todos 主题订阅成功！');
+            setSyncStatus('connected', '实时同步已就绪 (0ms)');
+          } catch (err) {
+            console.error('订阅异常:', err);
+            setSyncStatus('error', '订阅失败，重试中');
+            reconnectTimer = setTimeout(connectRealtimeSSE, 3000);
+          }
+        });
 
-            // 收到真正的增删改事件！
+        // 监听 todos 集合变更事件
+        eventSource.addEventListener('todos', function(e) {
+          try {
+            const data = JSON.parse(e.data);
             if (data.action && data.record) {
               handleIncomingRealtimeEvent(data.action, data.record);
             }
           } catch (err) {
-            console.error('解析 SSE 数据异常:', err);
+            console.error('解析 todos 事件异常:', err);
           }
+        });
+
+        // 兼容通用 message 事件
+        eventSource.onmessage = function(e) {
+          try {
+            const data = JSON.parse(e.data);
+            if (data.action && data.record) {
+              handleIncomingRealtimeEvent(data.action, data.record);
+            }
+          } catch (_) {}
         };
 
         eventSource.onerror = function(err) {
