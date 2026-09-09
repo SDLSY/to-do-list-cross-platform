@@ -899,39 +899,6 @@
             </select>
           </div>
         </div>
-
-        <!-- Agent 委派开关与严格填参面板 -->
-        <div style="background: #fbfbfe; border: 2px solid var(--border); border-radius: 6px; padding: 12px; margin-bottom: 14px;">
-          <div style="display: flex; align-items: center; justify-content: space-between;">
-            <label style="font-size: 12px; font-weight: 900; display: flex; align-items: center; gap: 6px; cursor: pointer; user-select: none;">
-              <input type="checkbox" id="formIsAgent" onchange="toggleAgentParams(this.checked)" style="width: 17px; height: 17px; cursor: pointer;" />
-              <span>🤖 委派给 AI Agent 全自动执行</span>
-            </label>
-            <span style="font-size: 10px; font-family: var(--font-mono); color: var(--c-muted);">[严格填参模式]</span>
-          </div>
-
-          <div id="agentParamsBox" style="display: none; margin-top: 12px; padding-top: 10px; border-top: 1.5px dashed #cbd5e1;">
-            <div class="form-group">
-              <label>工作目录 (WorkDir) *</label>
-              <input type="text" id="formWorkDir" class="form-input" placeholder="如: /home/testcc/project 或当前代码库" />
-            </div>
-            <div style="display: flex; gap: 10px;">
-              <div class="form-group" style="flex: 1.4;">
-                <label>执行模型 (Model) *</label>
-                <select id="formModel" class="form-input">
-                  <option value="claude-3-5-sonnet">Claude 3.5 Sonnet (最强逻辑)</option>
-                  <option value="deepseek-chat" selected>DeepSeek V3 (极高性价比)</option>
-                  <option value="gpt-4o">GPT-4o (全能旗舰)</option>
-                  <option value="qwen-2.5-coder">Qwen 2.5 Coder (代码专家)</option>
-                </select>
-              </div>
-              <div class="form-group" style="flex: 1;">
-                <label>最大步数 (Max Steps)</label>
-                <input type="number" id="formMaxSteps" class="form-input" value="15" min="1" max="50" />
-              </div>
-            </div>
-          </div>
-        </div>
         <div class="modal-footer">
           <button type="button" class="btn-brutal" onclick="closeModal()">取消</button>
           <button type="submit" class="btn-brutal btn-primary-brutal" id="modalSubmitBtn">💾 保存任务</button>
@@ -1029,31 +996,6 @@
           ⏰ 系统已配置每天 23:00 自动备份推送到 GitHub
         </div>
         <button class="btn-brutal" onclick="closeAnalyticsModal()">关闭</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Agent 任务执行报告与控制台现场日志弹窗 -->
-  <div class="modal-overlay" id="agentLogModal">
-    <div class="modal-box modal-box-large">
-      <div class="modal-header">
-        <h2 id="agentModalTitle">🤖 Agent 执行上下文与现场日志</h2>
-        <button class="icon-btn" onclick="closeAgentLogModal()">✕</button>
-      </div>
-      <div style="display: flex; gap: 8px; margin-bottom: 12px; font-size: 11px; font-family: var(--font-mono); flex-wrap: wrap;">
-        <span style="background: #e0e7ff; padding: 3px 8px; border: 1.5px solid var(--border); border-radius: 4px;">📂 目录: <code id="agentLogWorkDir">-</code></span>
-        <span style="background: #fef08a; padding: 3px 8px; border: 1.5px solid var(--border); border-radius: 4px;">🧠 模型: <code id="agentLogModel">-</code></span>
-        <span style="background: #bbf7d0; padding: 3px 8px; border: 1.5px solid var(--border); border-radius: 4px;">⏱️ 步数上限: <code id="agentLogMaxSteps">-</code></span>
-      </div>
-      <div style="background: #0f172a; color: #38bdf8; font-family: var(--font-mono); font-size: 12px; padding: 14px; border-radius: 6px; border: 2px solid var(--border); min-height: 200px; max-height: 380px; overflow-y: auto; white-space: pre-wrap; line-height: 1.5;" id="agentLogTerminal">
-        暂无运行日志...
-      </div>
-      <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center;">
-        <div style="display: flex; gap: 8px;">
-          <button class="btn-brutal btn-primary-brutal" id="btnApproveTask" onclick="approveCurrentAgentTask()">✓ 人工验收通过并归档</button>
-          <button class="btn-brutal" id="btnRejectTask" onclick="rejectCurrentAgentTask()">↺ 退回修改</button>
-        </div>
-        <button class="btn-brutal" onclick="closeAgentLogModal()">关闭</button>
       </div>
     </div>
   </div>
@@ -1309,21 +1251,10 @@
         stepBtn = `<button class="icon-btn btn-step-reset" onclick="updateTaskStatus('${item.id}', 'todo')" title="重新开启">↺ 重开</button>`;
       }
 
-      let agentBadge = '';
-      let agentLogBtn = '';
-      if (item.is_agent) {
-        agentBadge = `<span style="font-size:10px; font-weight:900; background:#e9d5ff; color:#6b21a8; border:1.5px solid var(--border); padding:1px 5px; border-radius:3px; margin-right:4px;">🤖 AGENT</span>`;
-        agentLogBtn = `<button class="icon-btn" style="background:#e9d5ff;" onclick="openAgentLogModal('${item.id}')" title="查看 Agent 执行报告与现场日志">📜 日志</button>`;
-      }
-
       card.innerHTML = `
         <div class="card-top">
-          <div style="display:flex; align-items:center;">
-            ${agentBadge}
-            <span class="priority-tag priority-${pVal}">${pText}</span>
-          </div>
+          <span class="priority-tag priority-${pVal}">${pText}</span>
           <div class="card-actions">
-            ${agentLogBtn}
             ${stepBtn}
             <button class="icon-btn" onclick="openEditModal('${item.id}')" title="编辑任务">✎</button>
             <button class="icon-btn" onclick="deleteTask('${item.id}')" title="删除">✕</button>
@@ -1488,14 +1419,7 @@
       }
     }
 
-    // 弹窗控制与 Agent 委派切换
-    function toggleAgentParams(checked) {
-      document.getElementById('agentParamsBox').style.display = checked ? 'block' : 'none';
-      if (checked && !document.getElementById('formWorkDir').value) {
-        document.getElementById('formWorkDir').value = '/home/testcc/to_list_linux_windows_android';
-      }
-    }
-
+    // 弹窗控制
     function openCreateModal() {
       document.getElementById('modalTitle').innerText = '⚡ 新建待办任务';
       document.getElementById('modalSubmitBtn').innerText = '💾 保存任务';
@@ -1504,11 +1428,6 @@
       document.getElementById('formDesc').value = '';
       document.getElementById('formStatus').value = 'todo';
       document.getElementById('formPriority').value = '1';
-      document.getElementById('formIsAgent').checked = false;
-      document.getElementById('formWorkDir').value = '/home/testcc/to_list_linux_windows_android';
-      document.getElementById('formModel').value = 'deepseek-chat';
-      document.getElementById('formMaxSteps').value = '15';
-      toggleAgentParams(false);
       document.getElementById('taskModal').classList.add('active');
       setTimeout(() => document.getElementById('formTitle').focus(), 50);
     }
@@ -1523,14 +1442,6 @@
       document.getElementById('formDesc').value = item.description || '';
       document.getElementById('formStatus').value = item.status || 'todo';
       document.getElementById('formPriority').value = item.priority ?? 1;
-
-      const isAgent = !!item.is_agent;
-      document.getElementById('formIsAgent').checked = isAgent;
-      document.getElementById('formWorkDir').value = item.work_dir || '/home/testcc/to_list_linux_windows_android';
-      document.getElementById('formModel').value = item.model || 'deepseek-chat';
-      document.getElementById('formMaxSteps').value = item.max_steps || 15;
-      toggleAgentParams(isAgent);
-
       document.getElementById('taskModal').classList.add('active');
       setTimeout(() => document.getElementById('formTitle').focus(), 50);
     }
@@ -1547,40 +1458,22 @@
       const status = document.getElementById('formStatus').value;
       const priority = parseInt(document.getElementById('formPriority').value, 10);
 
-      const is_agent = document.getElementById('formIsAgent').checked;
-      const work_dir = document.getElementById('formWorkDir').value.trim();
-      const model = document.getElementById('formModel').value;
-      const max_steps = parseInt(document.getElementById('formMaxSteps').value, 10) || 15;
-
       if (!title) return;
-      if (is_agent && !work_dir) {
-        alert('请在 Agent 委派配置中填写执行工作目录 (WorkDir)！');
-        return;
-      }
-
       closeModal();
-
-      const payload = {
-        title,
-        description,
-        status,
-        priority,
-        is_agent,
-        work_dir,
-        model,
-        max_steps
-      };
 
       if (id) {
         const item = allTodos.find(t => t.id === id);
         if (item) {
-          Object.assign(item, payload);
+          item.title = title;
+          item.description = description;
+          item.status = status;
+          item.priority = priority;
           renderAll();
         }
         try {
           await apiRequest(`collections/todos/records/${id}`, {
             method: 'PATCH',
-            body: JSON.stringify(payload)
+            body: JSON.stringify({ title, description, status, priority })
           });
         } catch (err) {
           alert('保存失败: ' + err.message);
@@ -1591,7 +1484,10 @@
           const record = await apiRequest('collections/todos/records', {
             method: 'POST',
             body: JSON.stringify({
-              ...payload,
+              title,
+              description,
+              status,
+              priority,
               order: Date.now()
             })
           });
@@ -1603,63 +1499,6 @@
           alert('创建失败: ' + err.message);
         }
       }
-    }
-
-    // ============================================================
-    // Agent 日志现场与人工验收交互模块
-    // ============================================================
-    let currentAgentTaskId = null;
-
-    function openAgentLogModal(id) {
-      const item = allTodos.find(t => t.id === id);
-      if (!item) return;
-      currentAgentTaskId = id;
-
-      document.getElementById('agentModalTitle').innerText = `🤖 ${item.title}`;
-      document.getElementById('agentLogWorkDir').innerText = item.work_dir || '未指定工作目录';
-      document.getElementById('agentLogModel').innerText = item.model || 'deepseek-chat';
-      document.getElementById('agentLogMaxSteps').innerText = `${item.max_steps || 15} 步`;
-
-      const logText = item.agent_log ||
-`[SYSTEM] 任务已建立并绑定 Agent 规格
-[ENV] 工作目录: ${item.work_dir || '默认'}
-[MODEL] 调用模型: ${item.model || 'deepseek-chat'}
-[STATUS] 当前状态: ${item.status === 'in_progress' ? '⚡ Agent 正在执行攻坚中...' : (item.status === 'done' ? '✓ 已完成并通过验收' : '📌 等待 Agent 调度认领...')}
---------------------------------------------------
-💡 提示：Agent 守护进程将在后台监听此任务并在执行后实时回传运行步骤。`;
-
-      document.getElementById('agentLogTerminal').innerText = logText;
-      document.getElementById('agentLogModal').classList.add('active');
-    }
-
-    function closeAgentLogModal() {
-      document.getElementById('agentLogModal').classList.remove('active');
-      currentAgentTaskId = null;
-    }
-
-    async function approveCurrentAgentTask() {
-      if (!currentAgentTaskId) return;
-      closeAgentLogModal();
-      triggerConfetti();
-      await updateTaskStatus(currentAgentTaskId, 'done');
-      alert('🎉 验收通过！该 Agent 任务已标记为完成并归档。');
-    }
-
-    async function rejectCurrentAgentTask() {
-      if (!currentAgentTaskId) return;
-      const reason = prompt('请输入退回重做的具体要求/意见：', '发现未满足预期，请重新检查并调整');
-      if (reason === null) return;
-      closeAgentLogModal();
-
-      const item = allTodos.find(t => t.id === currentAgentTaskId);
-      const updatedLog = (item?.agent_log || '') + `\n[HUMAN REJECT] ${new Date().toLocaleTimeString()}: 人工退回重做 - ${reason}\n`;
-
-      await apiRequest(`collections/todos/records/${currentAgentTaskId}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ status: 'todo', agent_log: updatedLog })
-      });
-      loadTodos();
-      alert('↺ 已退回任务至待办泳道，Agent 将按新意见重新攻坚！');
     }
 
     // 服务器地址配置
