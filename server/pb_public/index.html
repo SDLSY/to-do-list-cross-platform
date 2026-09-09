@@ -909,7 +909,7 @@
                 method: 'POST',
                 body: JSON.stringify({
                   clientId: sseClientId,
-                  subscriptions: ['todos', 'todos/*']
+                  subscriptions: ['todos']
                 })
               });
               setSyncStatus('connected', '实时同步已就绪 (0ms)');
