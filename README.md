@@ -32,6 +32,11 @@
 
 ```text
 to_list_linux_windows_android/
+├── backup/                          # 每日自动化备份与生产力日志生成
+│   ├── backup_to_github.sh          # 自动导出 JSON + 生成 Markdown 日报并推送 GitHub
+│   ├── data/                        # 结构化数据镜像 (todos-latest.json 及历史归档)
+│   └── reports/                     # 每日生产力 Markdown 日报归档
+│
 ├── server/                          # 后端服务
 │   ├── start.sh                     # Linux/macOS 一键启动脚本 (自动下载 PocketBase)
 │   ├── start.bat                    # Windows 一键启动脚本 (自动下载 PocketBase)
