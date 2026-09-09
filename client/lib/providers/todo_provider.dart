@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:pocketbase/pocketbase.dart';
 import '../models/todo.dart';
@@ -9,6 +10,7 @@ class TodoProvider with ChangeNotifier {
   List<TodoItem> _todos = [];
   bool _isLoading = false;
   String? _errorMessage;
+  Timer? _heartbeatTimer;
 
   TodoProvider(this._apiService);
 
@@ -23,11 +25,27 @@ class TodoProvider with ChangeNotifier {
       ..sort((a, b) => a.order.compareTo(b.order));
   }
 
-  // 初始化并开启实时订阅
+  // 初始化并开启实时订阅与健康巡检
   Future<void> initialize() async {
     await _apiService.init();
     await loadTodos();
     _setupSubscription();
+    _startHeartbeat();
+  }
+
+  // 周期性健康检测与断线自动重连巡检 (每 10 秒)
+  void _startHeartbeat() {
+    _heartbeatTimer?.cancel();
+    _heartbeatTimer = Timer.periodic(const Duration(seconds: 10), (timer) async {
+      final wasConnected = _apiService.isConnected;
+      final isStillAlive = await _apiService.testConnection();
+      if (!wasConnected && isStillAlive) {
+        // 断线重新恢复：立即重新全量拉取并恢复订阅
+        await loadTodos();
+        _setupSubscription();
+      }
+      notifyListeners();
+    });
   }
 
   // 更新服务器地址
@@ -92,7 +110,6 @@ class TodoProvider with ChangeNotifier {
     TodoPriority priority = TodoPriority.medium,
     String? dueDate,
   }) async {
-    // 计算新 order（当前状态列表中最大的 order + 1000）
     final currentList = getListByStatus(status);
     final double nextOrder = currentList.isEmpty
         ? 1000.0
@@ -126,7 +143,6 @@ class TodoProvider with ChangeNotifier {
     final oldItem = _todos[index];
     if (oldItem.status == newStatus) return;
 
-    // 1. 乐观更新本地数据
     final targetList = getListByStatus(newStatus);
     final newOrder = targetList.isEmpty
         ? 1000.0
@@ -136,14 +152,12 @@ class TodoProvider with ChangeNotifier {
     _todos[index] = updatedLocal;
     notifyListeners();
 
-    // 2. 异步同步到后端
     try {
       await _apiService.updateTodo(id, {
         'status': newStatus.value,
         'order': newOrder,
       });
     } catch (e) {
-      // 失败回滚
       _todos[index] = oldItem;
       _errorMessage = '更新失败，已还原';
       notifyListeners();
@@ -239,6 +253,7 @@ class TodoProvider with ChangeNotifier {
 
   @override
   void dispose() {
+    _heartbeatTimer?.cancel();
     _apiService.unsubscribe();
     super.dispose();
   }

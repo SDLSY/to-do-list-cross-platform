@@ -1,10 +1,12 @@
+import 'dart:async';
 import 'package:pocketbase/pocketbase.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/todo.dart';
 
 class PocketBaseService {
   static const String _serverUrlKey = 'pb_server_url';
-  static const String defaultServerUrl = 'http://127.0.0.1:8090';
+  // 默认使用部署好的阿里云公网中央服务器，确保三端天生处在同一网络
+  static const String defaultServerUrl = 'http://47.116.20.106:8090';
 
   late PocketBase _pb;
   String _currentServerUrl = defaultServerUrl;
@@ -38,7 +40,7 @@ class PocketBaseService {
 
   Future<bool> testConnection() async {
     try {
-      final health = await _pb.health.check();
+      final health = await _pb.health.check().timeout(const Duration(seconds: 4));
       _isConnected = (health.code == 200);
     } catch (_) {
       _isConnected = false;
@@ -92,21 +94,25 @@ class PocketBaseService {
     await _pb.collection('todos').delete(id);
   }
 
-  // 订阅实时事件 (SSE / WebSocket)
+  // 订阅实时事件 (SSE 长连接)
   Future<void> Function()? _unsubscribeCallback;
 
   Future<void> subscribeToChanges(void Function(RecordSubscriptionEvent event) onEvent) async {
     try {
       await unsubscribe();
       _unsubscribeCallback = await _pb.collection('todos').subscribe('*', onEvent);
+      _isConnected = true;
     } catch (e) {
-      // 连接订阅异常记录
+      // 若订阅失败将在后续心跳中尝试重连
+      _isConnected = false;
     }
   }
 
   Future<void> unsubscribe() async {
     if (_unsubscribeCallback != null) {
-      await _pb.collection('todos').unsubscribe('*');
+      try {
+        await _pb.collection('todos').unsubscribe('*');
+      } catch (_) {}
       _unsubscribeCallback = null;
     }
   }

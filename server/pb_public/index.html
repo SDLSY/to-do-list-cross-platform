@@ -3,11 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>⚡ RETRO TASK // 跨端待办看板</title>
-  <script src="https://cdn.jsdelivr.net/npm/pocketbase@0.21.3/dist/pocketbase.umd.js"></script>
+  <title>⚡ RETRO TASK // 跨端实时待办看板</title>
   <style>
     /* ============================================================
-       复古新野蛮主义 (NEO-BRUTALISM) 设计系统
+       复古新野蛮主义 (NEO-BRUTALISM) 极客设计系统
        ============================================================ */
     :root {
       --bg: #fffdfa;
@@ -18,7 +17,7 @@
       --shadow-active: 1px 1px 0px #000000;
       --shadow-sm: 2px 2px 0px #000000;
 
-      /* Neo-Brutalism 撞色 */
+      /* Neo-Brutalism 撞色调色板 */
       --c-yellow: #fef08a;
       --c-yellow-dark: #facc15;
       --c-blue: #bae6fd;
@@ -59,7 +58,7 @@
     header {
       background: #ffffff;
       border-bottom: 3px solid var(--border);
-      padding: 12px 24px;
+      padding: 10px 24px;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -84,25 +83,31 @@
       box-shadow: var(--shadow-sm);
       padding: 5px 12px;
       font-weight: 900;
-      font-size: 17px;
+      font-size: 16px;
       letter-spacing: -0.5px;
       text-transform: uppercase;
       transform: rotate(-1deg);
       user-select: none;
     }
 
+    /* 实时同步状态指示胶囊 (带动态心跳) */
     .status-pill {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
-      background: #f4f4f5;
+      gap: 7px;
+      background: #ffffff;
       border: 2px solid var(--border);
       box-shadow: var(--shadow-sm);
       padding: 4px 10px;
       font-family: var(--font-mono);
       font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
+      font-weight: 800;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .status-pill:hover {
+      box-shadow: var(--shadow);
+      transform: translate(-1px, -1px);
     }
     .status-dot {
       width: 9px;
@@ -110,11 +115,27 @@
       border-radius: 50%;
       background: #22c55e;
       border: 1.5px solid var(--border);
-      animation: blink-dot 1.8s infinite;
+      transition: background 0.3s;
     }
-    @keyframes blink-dot {
+    .status-dot.connecting {
+      background: #facc15;
+      animation: blink 0.8s infinite;
+    }
+    .status-dot.error {
+      background: #ef4444;
+      animation: none;
+    }
+    .status-dot.connected {
+      background: #22c55e;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
       0%, 100% { transform: scale(1); opacity: 1; }
-      50% { transform: scale(0.85); opacity: 0.4; }
+      50% { transform: scale(0.85); opacity: 0.5; }
+    }
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.2; }
     }
 
     /* 顶部中央：生产力进度仪表盘 */
@@ -146,7 +167,7 @@
       display: flex;
       align-items: center;
       gap: 10px;
-      min-width: 170px;
+      min-width: 160px;
     }
     .progress-track {
       flex: 1;
@@ -167,7 +188,7 @@
     .progress-pct {
       font-family: var(--font-mono);
       font-size: 12px;
-      font-weight: 800;
+      font-weight: 900;
       min-width: 38px;
     }
 
@@ -195,7 +216,7 @@
       transition: width 0.2s, box-shadow 0.2s;
     }
     .search-box input:focus {
-      width: 220px;
+      width: 210px;
       box-shadow: var(--shadow);
     }
     .search-box .icon {
@@ -231,7 +252,7 @@
       background: #f4f4f5;
     }
 
-    /* 粗暴按钮 (Neo-Brutalism Button) */
+    /* 粗暴按钮 (Brutal Button) */
     .btn-brutal {
       background: #ffffff;
       border: 2px solid var(--border);
@@ -258,15 +279,12 @@
       background: var(--c-yellow);
       color: #000;
     }
-    .btn-danger-brutal {
-      background: var(--c-danger);
-      color: #fff;
-    }
 
-    /* 主内容区 */
+    /* 主内容区：100% 自适应撑满 */
     main {
       flex: 1;
       width: 100%;
+      height: 100%;
       padding: 16px 24px;
       overflow: hidden;
       display: flex;
@@ -274,11 +292,12 @@
     }
 
     /* ============================================================
-       视图 1: 3 泳道看板视图 (KANBAN VIEW)
+       视图 1: 3 泳道看板视图 (KANBAN VIEW - 全屏等宽平铺)
        ============================================================ */
     .kanban-container {
       flex: 1;
       width: 100%;
+      height: 100%;
       display: flex;
       gap: 20px;
       overflow-x: auto;
@@ -288,7 +307,7 @@
 
     .kanban-column {
       flex: 1 1 0;
-      min-width: 300px;
+      min-width: 290px;
       background: #ffffff;
       border: 3px solid var(--border);
       box-shadow: var(--shadow);
@@ -311,11 +330,6 @@
       align-items: center;
       justify-content: space-between;
       user-select: none;
-    }
-    .col-header-left {
-      display: flex;
-      align-items: center;
-      gap: 8px;
     }
     .col-title {
       font-size: 15px;
@@ -341,7 +355,7 @@
       overflow-y: auto;
       display: flex;
       flex-direction: column;
-      gap: 14px;
+      gap: 12px;
     }
 
     /* 任务卡片 Card */
@@ -350,7 +364,7 @@
       border: 2px solid var(--border);
       box-shadow: var(--shadow-sm);
       border-radius: 6px;
-      padding: 14px;
+      padding: 12px;
       cursor: grab;
       position: relative;
       transition: transform 0.12s, box-shadow 0.12s;
@@ -379,7 +393,7 @@
     .priority-tag {
       font-family: var(--font-mono);
       font-size: 10px;
-      font-weight: 800;
+      font-weight: 900;
       border: 1.5px solid var(--border);
       padding: 2px 6px;
       text-transform: uppercase;
@@ -392,13 +406,13 @@
     .card-actions {
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 5px;
     }
     .icon-btn {
       background: #ffffff;
       border: 1.5px solid var(--border);
       box-shadow: 1px 1px 0px #000;
-      padding: 3px 7px;
+      padding: 3px 6px;
       font-size: 11px;
       font-weight: 800;
       cursor: pointer;
@@ -413,21 +427,15 @@
       transform: translate(1px, 1px);
       box-shadow: none;
     }
-    .btn-step-next {
-      background: var(--c-green);
-    }
-    .btn-step-start {
-      background: var(--c-blue);
-    }
-    .btn-step-reset {
-      background: var(--c-yellow);
-    }
+    .btn-step-start { background: var(--c-blue); }
+    .btn-step-next { background: var(--c-green); }
+    .btn-step-reset { background: var(--c-yellow); }
 
     .card-title {
-      font-size: 15px;
+      font-size: 14px;
       font-weight: 800;
       line-height: 1.4;
-      margin-bottom: 6px;
+      margin-bottom: 5px;
       word-break: break-word;
     }
     .card-title.done {
@@ -437,26 +445,14 @@
     .card-desc {
       font-size: 12px;
       color: var(--c-muted);
-      line-height: 1.5;
+      line-height: 1.4;
       white-space: pre-wrap;
       word-break: break-word;
       background: #fbfbfe;
-      padding: 6px 8px;
+      padding: 5px 7px;
       border: 1px solid #e4e4e7;
       border-radius: 4px;
-      margin-top: 6px;
-    }
-
-    .card-footer {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-top: 10px;
-      padding-top: 8px;
-      border-top: 1px dashed #e4e4e7;
-      font-size: 11px;
-      font-family: var(--font-mono);
-      color: var(--c-muted);
+      margin-top: 5px;
     }
 
     /* ============================================================
@@ -464,6 +460,8 @@
        ============================================================ */
     .list-container {
       flex: 1;
+      width: 100%;
+      height: 100%;
       background: #ffffff;
       border: 3px solid var(--border);
       box-shadow: var(--shadow);
@@ -500,12 +498,10 @@
       border-bottom: 1.5px solid #e4e4e7;
       transition: background 0.12s;
     }
-    .list-row:hover {
-      background: #fafaf9;
-    }
+    .list-row:hover { background: #fafaf9; }
     .list-checkbox {
-      width: 20px;
-      height: 20px;
+      width: 22px;
+      height: 22px;
       border: 2px solid var(--border);
       border-radius: 4px;
       cursor: pointer;
@@ -518,12 +514,10 @@
       font-size: 14px;
       user-select: none;
     }
-    .list-checkbox.checked {
-      background: var(--c-green);
-    }
+    .list-checkbox.checked { background: var(--c-green); }
     .list-row-title {
       font-size: 14px;
-      font-weight: 700;
+      font-weight: 800;
       padding-right: 16px;
       display: flex;
       flex-direction: column;
@@ -538,7 +532,7 @@
     .status-badge {
       display: inline-flex;
       align-items: center;
-      padding: 4px 8px;
+      padding: 3px 8px;
       border: 1.5px solid var(--border);
       border-radius: 4px;
       font-size: 11px;
@@ -550,7 +544,7 @@
     .status-badge.st-in_progress { background: var(--c-blue); }
     .status-badge.st-done { background: var(--c-green); }
 
-    /* 空状态提示 (Empty state) */
+    /* 空状态提示 */
     .empty-placeholder {
       display: flex;
       flex-direction: column;
@@ -559,12 +553,10 @@
       padding: 40px 20px;
       color: var(--c-muted);
       text-align: center;
-      gap: 10px;
+      gap: 8px;
       font-family: var(--font-mono);
     }
-    .empty-icon {
-      font-size: 36px;
-    }
+    .empty-icon { font-size: 32px; }
 
     /* 弹窗 Modal */
     .modal-overlay {
@@ -577,9 +569,7 @@
       z-index: 100;
       backdrop-filter: blur(2px);
     }
-    .modal-overlay.active {
-      display: flex;
-    }
+    .modal-overlay.active { display: flex; }
     .modal-box {
       background: #ffffff;
       border: 3px solid var(--border);
@@ -600,27 +590,22 @@
       justify-content: space-between;
       border-bottom: 2px solid var(--border);
       padding-bottom: 12px;
-      margin-bottom: 18px;
-    }
-    .modal-header h2 {
-      font-size: 18px;
-      font-weight: 900;
-    }
-
-    .form-group {
       margin-bottom: 16px;
     }
+    .modal-header h2 { font-size: 17px; font-weight: 900; }
+
+    .form-group { margin-bottom: 14px; }
     .form-group label {
       display: block;
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 800;
       font-family: var(--font-mono);
       text-transform: uppercase;
-      margin-bottom: 6px;
+      margin-bottom: 5px;
     }
     .form-input {
       width: 100%;
-      padding: 9px 12px;
+      padding: 8px 12px;
       font-size: 14px;
       font-weight: 600;
       border: 2px solid var(--border);
@@ -629,20 +614,17 @@
       background: #ffffff;
       border-radius: 4px;
     }
-    .form-input:focus {
-      box-shadow: var(--shadow);
-    }
+    .form-input:focus { box-shadow: var(--shadow); }
 
     .modal-footer {
       display: flex;
       justify-content: flex-end;
       gap: 12px;
-      margin-top: 24px;
+      margin-top: 20px;
       padding-top: 14px;
       border-top: 2px solid #e4e4e7;
     }
 
-    /* 庆祝撒花 Canvas */
     #confetti-canvas {
       position: fixed;
       top: 0;
@@ -662,9 +644,10 @@
   <header>
     <div class="header-brand">
       <div class="logo-badge">⚡ RETRO TASK // v2.0</div>
-      <div class="status-pill" title="SSE 实时双向流">
-        <span class="status-dot"></span>
-        <span id="syncText">LIVE SYNC</span>
+      <!-- 动态实时同步长连接指示器 (点击可配置服务器地址) -->
+      <div class="status-pill" id="syncPill" onclick="openServerConfigModal()" title="点击切换/配置服务器地址">
+        <span class="status-dot connecting" id="syncDot"></span>
+        <span id="syncText">正在建立长连接...</span>
       </div>
     </div>
 
@@ -701,7 +684,7 @@
       <!-- 即时搜索框 -->
       <div class="search-box">
         <span class="icon">🔍</span>
-        <input type="text" id="searchInput" placeholder="检索任务..." oninput="handleSearch(this.value)" />
+        <input type="text" id="searchInput" placeholder="检索任务 (/)..." oninput="handleSearch(this.value)" />
       </div>
 
       <!-- 看板/清单 双视图切换 -->
@@ -725,9 +708,7 @@
            ondragleave="handleDragLeave(event)"
            ondrop="handleDrop(event, 'todo')">
         <div class="col-header">
-          <div class="col-header-left">
-            <span class="col-title">📌 待办 (TODO)</span>
-          </div>
+          <span class="col-title">📌 待办 (TODO)</span>
           <span class="col-badge" id="count-todo">0</span>
         </div>
         <div class="col-body" id="tasks-todo"></div>
@@ -739,9 +720,7 @@
            ondragleave="handleDragLeave(event)"
            ondrop="handleDrop(event, 'in_progress')">
         <div class="col-header">
-          <div class="col-header-left">
-            <span class="col-title">⚡ 进行中 (IN PROGRESS)</span>
-          </div>
+          <span class="col-title">⚡ 进行中 (IN PROGRESS)</span>
           <span class="col-badge" id="count-in_progress">0</span>
         </div>
         <div class="col-body" id="tasks-in_progress"></div>
@@ -753,9 +732,7 @@
            ondragleave="handleDragLeave(event)"
            ondrop="handleDrop(event, 'done')">
         <div class="col-header">
-          <div class="col-header-left">
-            <span class="col-title">🎉 已完成 (DONE)</span>
-          </div>
+          <span class="col-title">🎉 已完成 (DONE)</span>
           <span class="col-badge" id="count-done">0</span>
         </div>
         <div class="col-body" id="tasks-done"></div>
@@ -818,29 +795,169 @@
     </div>
   </div>
 
+  <!-- 服务器配置弹窗 -->
+  <div class="modal-overlay" id="serverModal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h2>☁️ 服务器连接配置</h2>
+        <button class="icon-btn" onclick="closeServerModal()">✕</button>
+      </div>
+      <div class="form-group">
+        <label>PocketBase 服务端基准地址</label>
+        <input type="text" id="serverInput" class="form-input" placeholder="如: http://47.116.20.106:8090" />
+      </div>
+      <div style="font-size: 11.5px; color: var(--c-muted); line-height: 1.5; margin-bottom: 16px;">
+        • 阿里云公网：<code>http://47.116.20.106:8090</code><br>
+        • 本地运行：<code>http://127.0.0.1:8090</code><br>
+        • 更改后自动保存并在多端即时建立长连接通道。
+      </div>
+      <div class="modal-footer">
+        <button class="btn-brutal" onclick="closeServerModal()">取消</button>
+        <button class="btn-brutal btn-primary-brutal" onclick="saveServerConfig()">💾 连接并保存</button>
+      </div>
+    </div>
+  </div>
+
   <script>
-    // 初始化 PocketBase
-    const pb = new PocketBase(window.location.origin);
+    // ============================================================
+    // 零外部依赖 · 原生高性能实时通信与同步引擎 (Native Realtime Engine)
+    // ============================================================
+    const DEFAULT_SERVER = window.location.origin.includes('http') ? window.location.origin : 'http://47.116.20.106:8090';
+    let API_BASE = localStorage.getItem('pb_server_url') || DEFAULT_SERVER;
+    API_BASE = API_BASE.replace(/\/+$/, '');
+
     let allTodos = [];
-    let currentView = 'kanban'; // 'kanban' | 'list'
+    let currentView = 'kanban';
     let searchQuery = '';
     let draggedTaskId = null;
+    let eventSource = null;
+    let sseClientId = null;
+    let isConnected = false;
+    let reconnectTimer = null;
 
-    // 页面加载入口
-    async function init() {
-      await loadTodos();
-      subscribeRealtime();
-      bindKeyboardShortcuts();
+    // 状态指示器
+    function setSyncStatus(state, text) {
+      const dot = document.getElementById('syncDot');
+      const txt = document.getElementById('syncText');
+      dot.className = 'status-dot ' + state;
+      txt.innerText = text;
+      isConnected = (state === 'connected');
     }
 
-    // 从服务端加载全量数据
+    // 1. 初始化入口
+    async function init() {
+      bindKeyboardShortcuts();
+      await loadTodos();
+      connectRealtimeSSE();
+    }
+
+    // 2. 原生 REST 请求封装
+    async function apiRequest(endpoint, options = {}) {
+      const url = `${API_BASE}/api/${endpoint.replace(/^\/+/, '')}`;
+      const headers = {
+        'Content-Type': 'application/json',
+        ...(options.headers || {})
+      };
+      const resp = await fetch(url, { ...options, headers });
+      if (!resp.ok) {
+        let errBody = '';
+        try { errBody = await resp.text(); } catch(_) {}
+        throw new Error(`API Error [${resp.status}]: ${errBody}`);
+      }
+      if (resp.status === 204) return null;
+      return await resp.json();
+    }
+
+    // 3. 拉取全量任务
     async function loadTodos() {
       try {
-        allTodos = await pb.collection('todos').getFullList({ sort: 'order,-created' });
+        const data = await apiRequest('collections/todos/records?sort=order,-created&perPage=500');
+        allTodos = data.items || [];
         renderAll();
       } catch (err) {
-        console.error('加载任务失败:', err);
+        console.error('拉取任务失败:', err);
+        setSyncStatus('error', '连接服务器失败');
       }
+    }
+
+    // 4. 原生 EventSource 建立长连接并订阅 todos
+    function connectRealtimeSSE() {
+      if (eventSource) {
+        eventSource.close();
+        eventSource = null;
+      }
+      clearTimeout(reconnectTimer);
+      setSyncStatus('connecting', '正在连接长连接...');
+
+      try {
+        const sseUrl = `${API_BASE}/api/realtime`;
+        eventSource = new EventSource(sseUrl);
+
+        eventSource.onopen = function() {
+          console.log('⚡ SSE 长连接已建立通道');
+        };
+
+        eventSource.onmessage = async function(e) {
+          try {
+            const data = JSON.parse(e.data);
+
+            // 收到 PocketBase 连接包：获取 clientId 并发起主题订阅
+            if (data.clientId) {
+              sseClientId = data.clientId;
+              console.log('✅ 获得 SSE Client ID:', sseClientId);
+              await apiRequest('realtime', {
+                method: 'POST',
+                body: JSON.stringify({
+                  clientId: sseClientId,
+                  subscriptions: ['todos', 'todos/*']
+                })
+              });
+              setSyncStatus('connected', '实时同步已就绪 (0ms)');
+              return;
+            }
+
+            // 收到真正的增删改事件！
+            if (data.action && data.record) {
+              handleIncomingRealtimeEvent(data.action, data.record);
+            }
+          } catch (err) {
+            console.error('解析 SSE 数据异常:', err);
+          }
+        };
+
+        eventSource.onerror = function(err) {
+          console.warn('⚠️ SSE 连接断开，将在 3 秒后自动重连...', err);
+          setSyncStatus('error', '连接已断开，重连中...');
+          eventSource.close();
+          eventSource = null;
+          reconnectTimer = setTimeout(connectRealtimeSSE, 3000);
+        };
+      } catch (e) {
+        console.error('初始化 EventSource 失败:', e);
+        setSyncStatus('error', '连接异常');
+        reconnectTimer = setTimeout(connectRealtimeSSE, 3000);
+      }
+    }
+
+    // 5. 收到远端推送的事件处理（核心双向实时保证）
+    function handleIncomingRealtimeEvent(action, record) {
+      console.log(`🔔 收到多端实时广播 [${action}]:`, record.title);
+
+      if (action === 'create') {
+        if (!allTodos.some(t => t.id === record.id)) {
+          allTodos.push(record);
+        }
+      } else if (action === 'update') {
+        const idx = allTodos.findIndex(t => t.id === record.id);
+        if (idx !== -1) {
+          allTodos[idx] = record;
+        } else {
+          allTodos.push(record);
+        }
+      } else if (action === 'delete') {
+        allTodos = allTodos.filter(t => t.id !== record.id);
+      }
+      renderAll();
     }
 
     // 统一渲染调度
@@ -901,7 +1018,6 @@
         body.appendChild(card);
       });
 
-      // 检查空状态
       statuses.forEach(st => {
         document.getElementById(`count-${st}`).innerText = counts[st];
         const body = document.getElementById(`tasks-${st}`);
@@ -927,7 +1043,6 @@
       const pText = pVal === 2 ? 'P1 高优' : (pVal === 1 ? 'P2 中优' : 'P3 低优');
       const isDone = item.status === 'done';
 
-      // 快速推进按钮
       let stepBtn = '';
       if (item.status === 'todo') {
         stepBtn = `<button class="icon-btn btn-step-start" onclick="updateTaskStatus('${item.id}', 'in_progress')" title="推进到进行中">▶ 开始</button>`;
@@ -950,7 +1065,6 @@
         ${item.description ? `<div class="card-desc">${escapeHtml(item.description)}</div>` : ''}
       `;
 
-      // 拖拽事件监听
       card.addEventListener('dragstart', (e) => {
         draggedTaskId = item.id;
         card.classList.add('dragging');
@@ -983,7 +1097,6 @@
       filtered.forEach(item => {
         const row = document.createElement('div');
         row.className = 'list-row';
-
         const isDone = item.status === 'done';
         const pVal = item.priority ?? 1;
         const pText = pVal === 2 ? 'P1 高优' : (pVal === 1 ? 'P2 中优' : 'P3 低优');
@@ -1023,7 +1136,6 @@
       });
     }
 
-    // 视图切换
     function switchView(view) {
       currentView = view;
       document.getElementById('btnViewKanban').classList.toggle('active', view === 'kanban');
@@ -1033,13 +1145,11 @@
       renderAll();
     }
 
-    // 搜索输入过滤
     function handleSearch(val) {
       searchQuery = val;
       renderAll();
     }
 
-    // 拖拽相关
     function handleDragOver(e) {
       e.preventDefault();
       e.currentTarget.classList.add('drag-over');
@@ -1055,63 +1165,62 @@
 
       const item = allTodos.find(t => t.id === id);
       if (item && item.status !== targetStatus) {
-        if (targetStatus === 'done') {
-          triggerConfetti();
-        }
+        if (targetStatus === 'done') triggerConfetti();
+        // 乐观更新
         item.status = targetStatus;
         renderAll();
         try {
-          await pb.collection('todos').update(id, { status: targetStatus });
+          await apiRequest(`collections/todos/records/${id}`, {
+            method: 'PATCH',
+            body: JSON.stringify({ status: targetStatus })
+          });
         } catch (err) {
-          console.error('更新失败:', err);
+          console.error('更新状态失败:', err);
           loadTodos();
         }
       }
     }
 
-    // 快速状态转换
     async function updateTaskStatus(id, newStatus) {
       const item = allTodos.find(t => t.id === id);
       if (!item) return;
       item.status = newStatus;
       renderAll();
       try {
-        await pb.collection('todos').update(id, { status: newStatus });
+        await apiRequest(`collections/todos/records/${id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ status: newStatus })
+        });
       } catch (err) {
         loadTodos();
       }
     }
 
-    // 标记完成 + 触发庆祝动效
     async function markTaskDone(id) {
       triggerConfetti();
       await updateTaskStatus(id, 'done');
     }
 
-    // 清单复选框点击触发
     async function toggleDoneStatus(id) {
       const item = allTodos.find(t => t.id === id);
       if (!item) return;
       const newStatus = item.status === 'done' ? 'todo' : 'done';
-      if (newStatus === 'done') {
-        triggerConfetti();
-      }
+      if (newStatus === 'done') triggerConfetti();
       await updateTaskStatus(id, newStatus);
     }
 
-    // 删除任务
     async function deleteTask(id) {
       if (!confirm('💥 确定要永久删除该项任务吗？')) return;
       allTodos = allTodos.filter(t => t.id !== id);
       renderAll();
       try {
-        await pb.collection('todos').delete(id);
+        await apiRequest(`collections/todos/records/${id}`, { method: 'DELETE' });
       } catch (err) {
         loadTodos();
       }
     }
 
-    // 弹窗控制：新建
+    // 弹窗控制
     function openCreateModal() {
       document.getElementById('modalTitle').innerText = '⚡ 新建待办任务';
       document.getElementById('modalSubmitBtn').innerText = '💾 保存任务';
@@ -1124,11 +1233,9 @@
       setTimeout(() => document.getElementById('formTitle').focus(), 50);
     }
 
-    // 弹窗控制：编辑
     function openEditModal(id) {
       const item = allTodos.find(t => t.id === id);
       if (!item) return;
-
       document.getElementById('modalTitle').innerText = '✎ 编辑任务详情';
       document.getElementById('modalSubmitBtn').innerText = '💾 更新任务';
       document.getElementById('editTaskId').value = item.id;
@@ -1144,7 +1251,6 @@
       document.getElementById('taskModal').classList.remove('active');
     }
 
-    // 提交表单 (新增 or 编辑)
     async function handleFormSubmit(e) {
       e.preventDefault();
       const id = document.getElementById('editTaskId').value;
@@ -1157,7 +1263,6 @@
       closeModal();
 
       if (id) {
-        // 编辑模式
         const item = allTodos.find(t => t.id === id);
         if (item) {
           item.title = title;
@@ -1167,20 +1272,25 @@
           renderAll();
         }
         try {
-          await pb.collection('todos').update(id, { title, description, status, priority });
+          await apiRequest(`collections/todos/records/${id}`, {
+            method: 'PATCH',
+            body: JSON.stringify({ title, description, status, priority })
+          });
         } catch (err) {
           alert('保存失败: ' + err.message);
           loadTodos();
         }
       } else {
-        // 新建模式
         try {
-          const record = await pb.collection('todos').create({
-            title,
-            description,
-            status,
-            priority,
-            order: Date.now()
+          const record = await apiRequest('collections/todos/records', {
+            method: 'POST',
+            body: JSON.stringify({
+              title,
+              description,
+              status,
+              priority,
+              order: Date.now()
+            })
           });
           if (!allTodos.some(t => t.id === record.id)) {
             allTodos.push(record);
@@ -1192,32 +1302,30 @@
       }
     }
 
-    // 实时 PocketBase SSE 订阅
-    function subscribeRealtime() {
-      pb.collection('todos').subscribe('*', function (e) {
-        if (e.action === 'create') {
-          if (!allTodos.some(t => t.id === e.record.id)) {
-            allTodos.push(e.record);
-          }
-        } else if (e.action === 'update') {
-          const idx = allTodos.findIndex(t => t.id === e.record.id);
-          if (idx !== -1) allTodos[idx] = e.record;
-          else allTodos.push(e.record);
-        } else if (e.action === 'delete') {
-          allTodos = allTodos.filter(t => t.id !== e.record.id);
-        }
-        renderAll();
-      });
+    // 服务器地址配置
+    function openServerConfigModal() {
+      document.getElementById('serverInput').value = API_BASE;
+      document.getElementById('serverModal').classList.add('active');
+    }
+    function closeServerModal() {
+      document.getElementById('serverModal').classList.remove('active');
+    }
+    async function saveServerConfig() {
+      const val = document.getElementById('serverInput').value.trim().replace(/\/+$/, '');
+      if (!val) return;
+      API_BASE = val;
+      localStorage.setItem('pb_server_url', API_BASE);
+      closeServerModal();
+      await loadTodos();
+      connectRealtimeSSE();
     }
 
-    // 全局快捷键支持
     function bindKeyboardShortcuts() {
       document.addEventListener('keydown', (e) => {
-        // Esc 关闭弹窗
         if (e.key === 'Escape') {
           closeModal();
+          closeServerModal();
         }
-        // "/" 键快速聚焦搜索框 (非输入状态下)
         if (e.key === '/' && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
           e.preventDefault();
           document.getElementById('searchInput').focus();
@@ -1225,13 +1333,11 @@
       });
     }
 
-    // 极简轻量 Canvas 纸屑粒子撒花动效 (无需任何外链 CDN)
     function triggerConfetti() {
       const canvas = document.getElementById('confetti-canvas');
       const ctx = canvas.getContext('2d');
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
-
       const particles = [];
       const colors = ['#fef08a', '#bae6fd', '#bbf7d0', '#fbcfe8', '#f87171', '#000000'];
 
@@ -1255,7 +1361,7 @@
         particles.forEach(p => {
           p.x += p.vx;
           p.y += p.vy;
-          p.vy += 0.35; // 重力
+          p.vy += 0.35;
           p.rotation += p.vRot;
 
           if (p.y < canvas.height) {
@@ -1289,7 +1395,6 @@
       }[tag] || tag));
     }
 
-    // 启动
     init();
   </script>
 </body>
