@@ -90,10 +90,22 @@ class _TodoDialogState extends State<TodoDialog> {
   Widget build(BuildContext context) {
     final isEditing = widget.existingTodo != null;
 
-    return AlertDialog(
-      title: Text(isEditing ? '编辑任务' : '新建任务'),
-      content: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 450),
+    return Dialog(
+      backgroundColor: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: const BorderSide(color: Colors.black, width: 2.5),
+      ),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        constraints: const BoxConstraints(maxWidth: 460),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          boxShadow: const [
+            BoxShadow(color: Colors.black, offset: Offset(6, 6)),
+          ],
+        ),
         child: Form(
           key: _formKey,
           child: SingleChildScrollView(
@@ -101,13 +113,44 @@ class _TodoDialogState extends State<TodoDialog> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // 标题输入
+                // 标题栏
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      isEditing ? '✎ 编辑任务事项' : '⚡ 新建待办任务',
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+                    ),
+                    InkWell(
+                      onTap: () => Navigator.of(context).pop(),
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.black, width: 1.5),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: const Text('✕', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
+                // 任务标题输入框
+                const Text('任务标题 *', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, fontFamily: 'monospace')),
+                const SizedBox(height: 4),
                 TextFormField(
                   controller: _titleController,
-                  decoration: const InputDecoration(
-                    labelText: '任务标题',
-                    hintText: '如：完成跨平台待办调研',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    hintText: '输入待办核心事项...',
+                    hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    enabledBorder: const OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.black, width: 2),
+                    ),
+                    focusedBorder: const OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.black, width: 2.5),
+                    ),
                   ),
                   validator: (val) {
                     if (val == null || val.trim().isEmpty) {
@@ -116,76 +159,168 @@ class _TodoDialogState extends State<TodoDialog> {
                     return null;
                   },
                 ),
-                const SizedBox(height: 16),
-                // 描述输入
+                const SizedBox(height: 14),
+
+                // 备注输入框
+                const Text('备注描述 (可选)', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, fontFamily: 'monospace')),
+                const SizedBox(height: 4),
                 TextFormField(
                   controller: _descController,
-                  decoration: const InputDecoration(
-                    labelText: '详细备注 (可选)',
-                    hintText: '补充任务细节...',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    hintText: '补充任务细节或验收标准...',
+                    hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    enabledBorder: const OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.black, width: 2),
+                    ),
+                    focusedBorder: const OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.black, width: 2.5),
+                    ),
                   ),
                   maxLines: 3,
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 14),
+
                 // 优先级选择
-                const Text('优先级', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                const Text('优先级', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, fontFamily: 'monospace')),
                 const SizedBox(height: 6),
                 Row(
                   children: TodoPriority.values.map((p) {
                     final isSelected = _selectedPriority == p;
-                    final color = Color(p.colorHex);
+                    Color pBg = Colors.white;
+                    Color pFg = Colors.black;
+                    if (p == TodoPriority.high) {
+                      pBg = const Color(0xFFF87171);
+                      if (isSelected) pFg = Colors.white;
+                    } else if (p == TodoPriority.medium) {
+                      pBg = const Color(0xFFFEF08A);
+                    } else {
+                      pBg = const Color(0xFFF4F4F5);
+                    }
+
                     return Padding(
                       padding: const EdgeInsets.only(right: 8.0),
-                      child: ChoiceChip(
-                        label: Text(p.label),
-                        selected: isSelected,
-                        selectedColor: color.withOpacity(0.25),
-                        labelStyle: TextStyle(
-                          color: isSelected ? color : null,
-                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                      child: InkWell(
+                        onTap: () => setState(() => _selectedPriority = p),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                          decoration: BoxDecoration(
+                            color: isSelected ? pBg : Colors.white,
+                            border: Border.all(color: Colors.black, width: isSelected ? 2 : 1.5),
+                            borderRadius: BorderRadius.circular(4),
+                            boxShadow: isSelected ? const [BoxShadow(color: Colors.black, offset: Offset(2, 2))] : null,
+                          ),
+                          child: Text(
+                            p.label,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: isSelected ? FontWeight.w900 : FontWeight.bold,
+                              color: pFg,
+                            ),
+                          ),
                         ),
-                        onSelected: (selected) {
-                          if (selected) setState(() => _selectedPriority = p);
-                        },
                       ),
                     );
                   }).toList(),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 14),
+
                 // 状态选择
-                const Text('状态', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 6),
+                const Text('当前状态', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, fontFamily: 'monospace')),
+                const SizedBox(height: 4),
                 DropdownButtonFormField<TodoStatus>(
                   value: _selectedStatus,
                   decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
                     contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    enabledBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.black, width: 2),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.black, width: 2.5),
+                    ),
                   ),
                   items: TodoStatus.values.map((s) {
                     return DropdownMenuItem(
                       value: s,
-                      child: Text(s.label),
+                      child: Text(s.label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                     );
                   }).toList(),
                   onChanged: (s) {
                     if (s != null) setState(() => _selectedStatus = s);
                   },
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 14),
+
                 // 截止日期
                 Row(
                   children: [
-                    OutlinedButton.icon(
-                      onPressed: _pickDate,
-                      icon: const Icon(Icons.calendar_today, size: 16),
-                      label: Text(_dueDate == null ? '设置截止日期' : '日期: $_dueDate'),
-                    ),
-                    if (_dueDate != null)
-                      IconButton(
-                        icon: const Icon(Icons.clear, size: 18),
-                        onPressed: () => setState(() => _dueDate = null),
+                    InkWell(
+                      onTap: _pickDate,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          border: Border.all(color: Colors.black, width: 1.5),
+                          borderRadius: BorderRadius.circular(4),
+                          boxShadow: const [BoxShadow(color: Colors.black, offset: Offset(1.5, 1.5))],
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.calendar_today_outlined, size: 14, color: Colors.black),
+                            const SizedBox(width: 6),
+                            Text(
+                              _dueDate == null ? '设置截止日期' : '截止: $_dueDate',
+                              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+                            ),
+                          ],
+                        ),
                       ),
+                    ),
+                    if (_dueDate != null) ...[
+                      const SizedBox(width: 8),
+                      InkWell(
+                        onTap: () => setState(() => _dueDate = null),
+                        child: const Text('✕ 清除', style: TextStyle(fontSize: 11, color: Colors.red, fontWeight: FontWeight.bold)),
+                      ),
+                    ],
+                  ],
+                ),
+                const SizedBox(height: 22),
+
+                // 底部操作栏
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    InkWell(
+                      onTap: () => Navigator.of(context).pop(),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          border: Border.all(color: Colors.black, width: 2),
+                          borderRadius: BorderRadius.circular(4),
+                          boxShadow: const [BoxShadow(color: Colors.black, offset: Offset(2, 2))],
+                        ),
+                        child: const Text('取消', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    InkWell(
+                      onTap: _save,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 7),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFEF08A),
+                          border: Border.all(color: Colors.black, width: 2),
+                          borderRadius: BorderRadius.circular(4),
+                          boxShadow: const [BoxShadow(color: Colors.black, offset: Offset(3, 3))],
+                        ),
+                        child: Text(
+                          isEditing ? '💾 保存修改' : '💾 立即创建',
+                          style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ],
@@ -193,16 +328,6 @@ class _TodoDialogState extends State<TodoDialog> {
           ),
         ),
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('取消'),
-        ),
-        FilledButton(
-          onPressed: _save,
-          child: Text(isEditing ? '保存修改' : '立即创建'),
-        ),
-      ],
     );
   }
 }

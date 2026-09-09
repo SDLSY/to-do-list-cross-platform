@@ -29,27 +29,41 @@ class TodoSyncApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: '跨平台待办与看板',
+      title: 'RETRO TASK // 跨端待办看板',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
+        scaffoldBackgroundColor: const Color(0xFFFFFDF8),
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF2563EB), // 经典优雅蓝
-          brightness: Brightness.light,
+          seedColor: const Color(0xFFFEF08A),
+          primary: Colors.black,
+          secondary: const Color(0xFF38BDF8),
+          surface: Colors.white,
+          background: const Color(0xFFFFFDF8),
         ),
-        cardTheme: const CardTheme(
-          elevation: 1,
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Colors.white,
+          foregroundColor: Colors.black,
+          elevation: 0,
+          scrolledUnderElevation: 0,
+        ),
+        cardTheme: CardTheme(
+          elevation: 0,
           margin: EdgeInsets.zero,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(6),
+            side: const BorderSide(color: Colors.black, width: 2),
+          ),
+        ),
+        dialogTheme: DialogTheme(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+            side: const BorderSide(color: Colors.black, width: 2.5),
+          ),
+          elevation: 0,
         ),
       ),
-      darkTheme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF2563EB),
-          brightness: Brightness.dark,
-        ),
-      ),
-      themeMode: ThemeMode.system,
       home: const HomeScreen(),
     );
   }

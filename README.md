@@ -161,9 +161,12 @@ flutter run -d android
 方式 B（打包为独立 APK 安装包）：
 ```bash
 cd client
+chmod +x build_apk.sh
+./build_apk.sh
+# 或者手动:
 flutter build apk --release
 ```
-生成的 APK 位于：`client/build/app/outputs/flutter-apk/app-release.apk`，可直接通过微信/QQ/数据线传到手机上安装。
+打包完成后自动输出安装包至：`release/todo-taskflow-android-release.apk` (或 `client/build/app/outputs/flutter-apk/app-release.apk`)，可直接通过微信/QQ/数据线传到手机上安装。
 
 #### 3. Android 端局域网配对与网络配置（关键）
 > **注意**：由于 Android 手机是独立设备，不能直接访问 `127.0.0.1`，需连接运行后端的电脑局域网 IP。

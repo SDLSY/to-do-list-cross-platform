@@ -3,427 +3,1043 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>三端同步待办看板 (Linux / Windows / Android)</title>
+  <title>⚡ RETRO TASK // 跨端待办看板</title>
   <script src="https://cdn.jsdelivr.net/npm/pocketbase@0.21.3/dist/pocketbase.umd.js"></script>
   <style>
+    /* ============================================================
+       复古新野蛮主义 (NEO-BRUTALISM) 设计系统
+       ============================================================ */
     :root {
-      --bg-color: #f1f5f9;
+      --bg: #fffdfa;
       --card-bg: #ffffff;
-      --text-main: #0f172a;
-      --text-muted: #64748b;
-      --primary: #2563eb;
-      --border-color: #e2e8f0;
-      --todo-color: #3b82f6;
-      --prog-color: #f59e0b;
-      --done-color: #10b981;
+      --border: #000000;
+      --shadow: 4px 4px 0px #000000;
+      --shadow-hover: 6px 6px 0px #000000;
+      --shadow-active: 1px 1px 0px #000000;
+      --shadow-sm: 2px 2px 0px #000000;
+
+      /* Neo-Brutalism 撞色 */
+      --c-yellow: #fef08a;
+      --c-yellow-dark: #facc15;
+      --c-blue: #bae6fd;
+      --c-blue-dark: #38bdf8;
+      --c-green: #bbf7d0;
+      --c-green-dark: #4ade80;
+      --c-pink: #fbcfe8;
+      --c-pink-dark: #f472b6;
+      --c-purple: #e9d5ff;
+      --c-orange: #fed7aa;
+      --c-danger: #f87171;
+      --c-text: #18181b;
+      --c-muted: #71717a;
+
+      --font-main: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
     }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      background: var(--bg-color);
-      color: var(--text-main);
+      font-family: var(--font-main);
+      background-color: var(--bg);
+      background-image: radial-gradient(#000000 0.75px, transparent 0.75px);
+      background-size: 20px 20px;
+      color: var(--c-text);
       display: flex;
       flex-direction: column;
       height: 100vh;
       overflow: hidden;
     }
 
-    /* 顶部导航 */
+    /* 顶部导航 Header */
     header {
-      background: var(--card-bg);
-      border-bottom: 1px solid var(--border-color);
+      background: #ffffff;
+      border-bottom: 3px solid var(--border);
       padding: 12px 24px;
       display: flex;
       align-items: center;
       justify-content: space-between;
+      gap: 16px;
       flex-shrink: 0;
+      box-shadow: 0 4px 0 rgba(0,0,0,0.06);
+      z-index: 20;
     }
-    .header-left {
+
+    .header-brand {
       display: flex;
       align-items: center;
       gap: 12px;
     }
-    .header-title {
-      font-size: 18px;
-      font-weight: 700;
-      color: #1e293b;
-    }
-    .sync-badge {
+
+    .logo-badge {
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      font-size: 12px;
-      padding: 3px 10px;
-      border-radius: 999px;
-      background: #ecfdf5;
-      color: #065f46;
-      border: 1px solid #a7f3d0;
+      background: var(--c-yellow);
+      border: 2px solid var(--border);
+      box-shadow: var(--shadow-sm);
+      padding: 5px 12px;
+      font-weight: 900;
+      font-size: 17px;
+      letter-spacing: -0.5px;
+      text-transform: uppercase;
+      transform: rotate(-1deg);
+      user-select: none;
     }
-    .sync-dot {
-      width: 7px;
-      height: 7px;
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #f4f4f5;
+      border: 2px solid var(--border);
+      box-shadow: var(--shadow-sm);
+      padding: 4px 10px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+    .status-dot {
+      width: 9px;
+      height: 9px;
       border-radius: 50%;
-      background: #10b981;
-      animation: pulse 2s infinite;
+      background: #22c55e;
+      border: 1.5px solid var(--border);
+      animation: blink-dot 1.8s infinite;
     }
-    @keyframes pulse {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.4; transform: scale(0.85); }
+    @keyframes blink-dot {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(0.85); opacity: 0.4; }
     }
-    .header-right {
+
+    /* 顶部中央：生产力进度仪表盘 */
+    .dashboard-panel {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      background: #ffffff;
+      border: 2px solid var(--border);
+      box-shadow: var(--shadow-sm);
+      padding: 6px 16px;
+      border-radius: 8px;
+    }
+
+    .stat-chip {
+      display: flex;
+      align-items: baseline;
+      gap: 5px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .stat-chip .num {
+      font-family: var(--font-mono);
+      font-size: 16px;
+      font-weight: 900;
+    }
+
+    .progress-bar-wrap {
       display: flex;
       align-items: center;
       gap: 10px;
+      min-width: 170px;
     }
-    .btn {
-      padding: 8px 16px;
-      border-radius: 6px;
-      font-size: 14px;
-      font-weight: 500;
-      cursor: pointer;
-      border: none;
-      transition: all 0.2s;
+    .progress-track {
+      flex: 1;
+      height: 14px;
+      background: #f4f4f5;
+      border: 2px solid var(--border);
+      border-radius: 4px;
+      overflow: hidden;
+      position: relative;
     }
-    .btn-primary {
-      background: var(--primary);
-      color: white;
+    .progress-fill {
+      height: 100%;
+      background: var(--c-green-dark);
+      width: 0%;
+      transition: width 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+      border-right: 2px solid var(--border);
     }
-    .btn-primary:hover {
-      background: #1d4ed8;
+    .progress-pct {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 800;
+      min-width: 38px;
     }
 
-    /* 看板主区域 */
+    /* Header 右侧控制区 */
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .search-box {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+    .search-box input {
+      padding: 7px 12px 7px 32px;
+      font-size: 13px;
+      font-weight: 600;
+      border: 2px solid var(--border);
+      box-shadow: var(--shadow-sm);
+      outline: none;
+      background: #ffffff;
+      width: 170px;
+      transition: width 0.2s, box-shadow 0.2s;
+    }
+    .search-box input:focus {
+      width: 220px;
+      box-shadow: var(--shadow);
+    }
+    .search-box .icon {
+      position: absolute;
+      left: 10px;
+      font-size: 13px;
+      pointer-events: none;
+    }
+
+    .view-toggle-btn {
+      display: inline-flex;
+      background: #ffffff;
+      border: 2px solid var(--border);
+      box-shadow: var(--shadow-sm);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    .view-opt {
+      padding: 6px 12px;
+      font-size: 13px;
+      font-weight: 800;
+      cursor: pointer;
+      border: none;
+      background: transparent;
+      transition: all 0.15s;
+    }
+    .view-opt.active {
+      background: var(--c-yellow);
+      color: #000;
+      font-weight: 900;
+    }
+    .view-opt:not(.active):hover {
+      background: #f4f4f5;
+    }
+
+    /* 粗暴按钮 (Neo-Brutalism Button) */
+    .btn-brutal {
+      background: #ffffff;
+      border: 2px solid var(--border);
+      box-shadow: var(--shadow);
+      padding: 7px 16px;
+      font-size: 13px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: transform 0.1s, box-shadow 0.1s;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      user-select: none;
+    }
+    .btn-brutal:hover {
+      transform: translate(-2px, -2px);
+      box-shadow: var(--shadow-hover);
+    }
+    .btn-brutal:active {
+      transform: translate(2px, 2px);
+      box-shadow: var(--shadow-active);
+    }
+    .btn-primary-brutal {
+      background: var(--c-yellow);
+      color: #000;
+    }
+    .btn-danger-brutal {
+      background: var(--c-danger);
+      color: #fff;
+    }
+
+    /* 主内容区 */
     main {
       flex: 1;
-      display: flex;
-      padding: 20px;
-      gap: 20px;
-      overflow-x: auto;
-    }
-    .kanban-col {
-      flex: 1;
-      min-width: 320px;
-      max-width: 420px;
-      background: #e2e8f0;
-      border-radius: 12px;
+      width: 100%;
+      padding: 16px 24px;
+      overflow: hidden;
       display: flex;
       flex-direction: column;
-      max-height: 100%;
-      border: 2px solid transparent;
-      transition: border-color 0.2s, background 0.2s;
     }
-    .kanban-col.drag-over {
-      border-color: var(--primary);
-      background: #e0e7ff;
+
+    /* ============================================================
+       视图 1: 3 泳道看板视图 (KANBAN VIEW)
+       ============================================================ */
+    .kanban-container {
+      flex: 1;
+      width: 100%;
+      display: flex;
+      gap: 20px;
+      overflow-x: auto;
+      overflow-y: hidden;
+      padding-bottom: 4px;
     }
+
+    .kanban-column {
+      flex: 1 1 0;
+      min-width: 300px;
+      background: #ffffff;
+      border: 3px solid var(--border);
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      border-radius: 8px;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .kanban-column.drag-over {
+      background: #fefce8;
+      border-style: dashed;
+      box-shadow: var(--shadow-hover);
+    }
+
     .col-header {
       padding: 14px 16px;
+      border-bottom: 3px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      user-select: none;
+    }
+    .col-header-left {
       display: flex;
       align-items: center;
       gap: 8px;
     }
-    .col-dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-    }
     .col-title {
-      font-weight: 700;
       font-size: 15px;
+      font-weight: 900;
+      letter-spacing: -0.3px;
     }
-    .col-count {
-      background: rgba(0,0,0,0.08);
+    .col-badge {
+      font-family: var(--font-mono);
       font-size: 12px;
-      font-weight: bold;
-      padding: 2px 7px;
-      border-radius: 10px;
-      color: var(--text-muted);
+      font-weight: 900;
+      border: 2px solid var(--border);
+      padding: 1px 7px;
+      border-radius: 20px;
+      background: #ffffff;
     }
-    .col-tasks {
+    #col-todo .col-header { background: var(--c-yellow); }
+    #col-in_progress .col-header { background: var(--c-blue); }
+    #col-done .col-header { background: var(--c-green); }
+
+    .col-body {
       flex: 1;
-      padding: 8px 12px;
+      padding: 14px;
       overflow-y: auto;
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 14px;
     }
 
-    /* 任务卡片 */
+    /* 任务卡片 Card */
     .task-card {
-      background: var(--card-bg);
-      border-radius: 8px;
+      background: #ffffff;
+      border: 2px solid var(--border);
+      box-shadow: var(--shadow-sm);
+      border-radius: 6px;
       padding: 14px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
       cursor: grab;
-      border: 1px solid rgba(0,0,0,0.04);
-      transition: transform 0.15s, box-shadow 0.15s;
+      position: relative;
+      transition: transform 0.12s, box-shadow 0.12s;
+    }
+    .task-card:hover {
+      transform: translate(-2px, -2px);
+      box-shadow: var(--shadow);
     }
     .task-card:active {
       cursor: grabbing;
+      transform: translate(2px, 2px);
+      box-shadow: var(--shadow-active);
     }
     .task-card.dragging {
-      opacity: 0.4;
-      transform: scale(0.98);
+      opacity: 0.35;
+      transform: scale(0.96);
+      border-style: dashed;
     }
-    .task-card-top {
+
+    .card-top {
       display: flex;
       align-items: center;
       justify-content: space-between;
       margin-bottom: 8px;
     }
-    .priority-badge {
-      font-size: 11px;
-      font-weight: 600;
+    .priority-tag {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 800;
+      border: 1.5px solid var(--border);
       padding: 2px 6px;
-      border-radius: 4px;
+      text-transform: uppercase;
+      border-radius: 3px;
     }
-    .priority-2 { background: #fee2e2; color: #dc2626; } /* 高 */
-    .priority-1 { background: #fef3c7; color: #d97706; } /* 中 */
-    .priority-0 { background: #f1f5f9; color: #64748b; } /* 低 */
+    .priority-2 { background: var(--c-danger); color: #fff; } /* 高 */
+    .priority-1 { background: var(--c-yellow); color: #000; } /* 中 */
+    .priority-0 { background: #f4f4f5; color: var(--c-text); } /* 低 */
 
-    .task-actions {
+    .card-actions {
       display: flex;
       align-items: center;
       gap: 6px;
     }
-    .action-btn {
-      background: none;
-      border: none;
+    .icon-btn {
+      background: #ffffff;
+      border: 1.5px solid var(--border);
+      box-shadow: 1px 1px 0px #000;
+      padding: 3px 7px;
+      font-size: 11px;
+      font-weight: 800;
       cursor: pointer;
-      font-size: 12px;
-      color: var(--text-muted);
-      padding: 2px 6px;
       border-radius: 4px;
+      transition: transform 0.08s, box-shadow 0.08s;
     }
-    .action-btn:hover {
-      background: #f1f5f9;
-      color: var(--text-main);
+    .icon-btn:hover {
+      transform: translate(-1px, -1px);
+      box-shadow: 2px 2px 0px #000;
     }
-    .task-title {
-      font-size: 14px;
-      font-weight: 600;
-      line-height: 1.4;
-      margin-bottom: 4px;
+    .icon-btn:active {
+      transform: translate(1px, 1px);
+      box-shadow: none;
     }
-    .task-desc {
-      font-size: 12px;
-      color: var(--text-muted);
-      line-height: 1.4;
-      white-space: pre-wrap;
+    .btn-step-next {
+      background: var(--c-green);
+    }
+    .btn-step-start {
+      background: var(--c-blue);
+    }
+    .btn-step-reset {
+      background: var(--c-yellow);
     }
 
-    /* 弹窗 */
-    .modal-backdrop {
+    .card-title {
+      font-size: 15px;
+      font-weight: 800;
+      line-height: 1.4;
+      margin-bottom: 6px;
+      word-break: break-word;
+    }
+    .card-title.done {
+      text-decoration: line-through;
+      color: var(--c-muted);
+    }
+    .card-desc {
+      font-size: 12px;
+      color: var(--c-muted);
+      line-height: 1.5;
+      white-space: pre-wrap;
+      word-break: break-word;
+      background: #fbfbfe;
+      padding: 6px 8px;
+      border: 1px solid #e4e4e7;
+      border-radius: 4px;
+      margin-top: 6px;
+    }
+
+    .card-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 10px;
+      padding-top: 8px;
+      border-top: 1px dashed #e4e4e7;
+      font-size: 11px;
+      font-family: var(--font-mono);
+      color: var(--c-muted);
+    }
+
+    /* ============================================================
+       视图 2: 紧凑清单列表视图 (LIST VIEW)
+       ============================================================ */
+    .list-container {
+      flex: 1;
+      background: #ffffff;
+      border: 3px solid var(--border);
+      box-shadow: var(--shadow);
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .list-header-row {
+      display: grid;
+      grid-template-columns: 48px 1fr 120px 140px 140px;
+      padding: 12px 18px;
+      background: var(--c-yellow);
+      border-bottom: 3px solid var(--border);
+      font-weight: 900;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      user-select: none;
+    }
+
+    .list-scroll-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 6px 0;
+    }
+
+    .list-row {
+      display: grid;
+      grid-template-columns: 48px 1fr 120px 140px 140px;
+      align-items: center;
+      padding: 12px 18px;
+      border-bottom: 1.5px solid #e4e4e7;
+      transition: background 0.12s;
+    }
+    .list-row:hover {
+      background: #fafaf9;
+    }
+    .list-checkbox {
+      width: 20px;
+      height: 20px;
+      border: 2px solid var(--border);
+      border-radius: 4px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #ffffff;
+      box-shadow: 1px 1px 0px #000;
+      font-weight: 900;
+      font-size: 14px;
+      user-select: none;
+    }
+    .list-checkbox.checked {
+      background: var(--c-green);
+    }
+    .list-row-title {
+      font-size: 14px;
+      font-weight: 700;
+      padding-right: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .list-row-desc {
+      font-size: 12px;
+      color: var(--c-muted);
+      font-weight: 400;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 8px;
+      border: 1.5px solid var(--border);
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 800;
+      font-family: var(--font-mono);
+      width: fit-content;
+    }
+    .status-badge.st-todo { background: var(--c-yellow); }
+    .status-badge.st-in_progress { background: var(--c-blue); }
+    .status-badge.st-done { background: var(--c-green); }
+
+    /* 空状态提示 (Empty state) */
+    .empty-placeholder {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px;
+      color: var(--c-muted);
+      text-align: center;
+      gap: 10px;
+      font-family: var(--font-mono);
+    }
+    .empty-icon {
+      font-size: 36px;
+    }
+
+    /* 弹窗 Modal */
+    .modal-overlay {
       position: fixed;
       inset: 0;
-      background: rgba(0,0,0,0.4);
+      background: rgba(0, 0, 0, 0.65);
       display: none;
       align-items: center;
       justify-content: center;
       z-index: 100;
+      backdrop-filter: blur(2px);
     }
-    .modal-backdrop.open { display: flex; }
-    .modal {
-      background: white;
-      border-radius: 12px;
-      width: 90%;
-      max-width: 440px;
+    .modal-overlay.active {
+      display: flex;
+    }
+    .modal-box {
+      background: #ffffff;
+      border: 3px solid var(--border);
+      box-shadow: 8px 8px 0px #000000;
+      width: 92%;
+      max-width: 480px;
       padding: 24px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+      border-radius: 8px;
+      animation: modal-pop 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
-    .modal-title {
-      font-size: 17px;
-      font-weight: 700;
-      margin-bottom: 16px;
+    @keyframes modal-pop {
+      from { transform: scale(0.92); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
     }
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 2px solid var(--border);
+      padding-bottom: 12px;
+      margin-bottom: 18px;
+    }
+    .modal-header h2 {
+      font-size: 18px;
+      font-weight: 900;
+    }
+
     .form-group {
-      margin-bottom: 14px;
+      margin-bottom: 16px;
     }
     .form-group label {
       display: block;
-      font-size: 13px;
-      font-weight: 600;
+      font-size: 12px;
+      font-weight: 800;
+      font-family: var(--font-mono);
+      text-transform: uppercase;
       margin-bottom: 6px;
-      color: #334155;
     }
-    .form-control {
+    .form-input {
       width: 100%;
-      padding: 8px 12px;
-      border-radius: 6px;
-      border: 1px solid var(--border-color);
+      padding: 9px 12px;
       font-size: 14px;
+      font-weight: 600;
+      border: 2px solid var(--border);
+      box-shadow: var(--shadow-sm);
+      outline: none;
+      background: #ffffff;
+      border-radius: 4px;
     }
-    .modal-actions {
+    .form-input:focus {
+      box-shadow: var(--shadow);
+    }
+
+    .modal-footer {
       display: flex;
       justify-content: flex-end;
-      gap: 10px;
-      margin-top: 20px;
+      gap: 12px;
+      margin-top: 24px;
+      padding-top: 14px;
+      border-top: 2px solid #e4e4e7;
+    }
+
+    /* 庆祝撒花 Canvas */
+    #confetti-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 999;
     }
   </style>
 </head>
 <body>
 
+  <canvas id="confetti-canvas"></canvas>
+
+  <!-- 顶部导航栏 -->
   <header>
-    <div class="header-left">
-      <span class="header-title">📋 三端同步待办看板</span>
-      <span class="sync-badge">
-        <span class="sync-dot"></span>
-        <span id="syncText">实时同步已就绪 (SSE)</span>
-      </span>
+    <div class="header-brand">
+      <div class="logo-badge">⚡ RETRO TASK // v2.0</div>
+      <div class="status-pill" title="SSE 实时双向流">
+        <span class="status-dot"></span>
+        <span id="syncText">LIVE SYNC</span>
+      </div>
     </div>
-    <div class="header-right">
-      <button class="btn btn-primary" onclick="openModal()">+ 新建任务</button>
+
+    <!-- 中部统计仪表盘 (Dashboard) -->
+    <div class="dashboard-panel">
+      <div class="stat-chip" title="全部任务数">
+        <span>ALL:</span>
+        <span class="num" id="statAll">0</span>
+      </div>
+      <div class="stat-chip" style="color: #b45309;" title="待办数">
+        <span>TODO:</span>
+        <span class="num" id="statTodo">0</span>
+      </div>
+      <div class="stat-chip" style="color: #0369a1;" title="进行中数">
+        <span>PROG:</span>
+        <span class="num" id="statProg">0</span>
+      </div>
+      <div class="stat-chip" style="color: #15803d;" title="已完成数">
+        <span>DONE:</span>
+        <span class="num" id="statDone">0</span>
+      </div>
+
+      <!-- 粗黑框动态进度条 -->
+      <div class="progress-bar-wrap">
+        <div class="progress-track" title="完成率">
+          <div class="progress-fill" id="progressFill"></div>
+        </div>
+        <div class="progress-pct" id="progressPct">0%</div>
+      </div>
+    </div>
+
+    <!-- 右侧操作栏 -->
+    <div class="header-actions">
+      <!-- 即时搜索框 -->
+      <div class="search-box">
+        <span class="icon">🔍</span>
+        <input type="text" id="searchInput" placeholder="检索任务..." oninput="handleSearch(this.value)" />
+      </div>
+
+      <!-- 看板/清单 双视图切换 -->
+      <div class="view-toggle-btn">
+        <button class="view-opt active" id="btnViewKanban" onclick="switchView('kanban')">🗂️ 看板</button>
+        <button class="view-opt" id="btnViewList" onclick="switchView('list')">📋 清单</button>
+      </div>
+
+      <!-- 新建任务按钮 -->
+      <button class="btn-brutal btn-primary-brutal" onclick="openCreateModal()">+ 新建任务</button>
     </div>
   </header>
 
+  <!-- 主视图容器 -->
   <main>
-    <!-- 待办列 -->
-    <div class="kanban-col" id="col-todo" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event, 'todo')">
-      <div class="col-header">
-        <span class="col-dot" style="background: var(--todo-color);"></span>
-        <span class="col-title">待办 (To Do)</span>
-        <span class="col-count" id="count-todo">0</span>
+    <!-- 1. 看板视图 -->
+    <div class="kanban-container" id="kanbanView">
+      <!-- 待办列 -->
+      <div class="kanban-column" id="col-todo"
+           ondragover="handleDragOver(event)"
+           ondragleave="handleDragLeave(event)"
+           ondrop="handleDrop(event, 'todo')">
+        <div class="col-header">
+          <div class="col-header-left">
+            <span class="col-title">📌 待办 (TODO)</span>
+          </div>
+          <span class="col-badge" id="count-todo">0</span>
+        </div>
+        <div class="col-body" id="tasks-todo"></div>
       </div>
-      <div class="col-tasks" id="tasks-todo"></div>
+
+      <!-- 进行中列 -->
+      <div class="kanban-column" id="col-in_progress"
+           ondragover="handleDragOver(event)"
+           ondragleave="handleDragLeave(event)"
+           ondrop="handleDrop(event, 'in_progress')">
+        <div class="col-header">
+          <div class="col-header-left">
+            <span class="col-title">⚡ 进行中 (IN PROGRESS)</span>
+          </div>
+          <span class="col-badge" id="count-in_progress">0</span>
+        </div>
+        <div class="col-body" id="tasks-in_progress"></div>
+      </div>
+
+      <!-- 已完成列 -->
+      <div class="kanban-column" id="col-done"
+           ondragover="handleDragOver(event)"
+           ondragleave="handleDragLeave(event)"
+           ondrop="handleDrop(event, 'done')">
+        <div class="col-header">
+          <div class="col-header-left">
+            <span class="col-title">🎉 已完成 (DONE)</span>
+          </div>
+          <span class="col-badge" id="count-done">0</span>
+        </div>
+        <div class="col-body" id="tasks-done"></div>
+      </div>
     </div>
 
-    <!-- 进行中列 -->
-    <div class="kanban-col" id="col-in_progress" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event, 'in_progress')">
-      <div class="col-header">
-        <span class="col-dot" style="background: var(--prog-color);"></span>
-        <span class="col-title">进行中 (In Progress)</span>
-        <span class="col-count" id="count-in_progress">0</span>
+    <!-- 2. 清单列表视图 -->
+    <div class="list-container" id="listView" style="display: none;">
+      <div class="list-header-row">
+        <span>完成</span>
+        <span>任务事项与备注</span>
+        <span>优先级</span>
+        <span>当前状态</span>
+        <span>快捷操作</span>
       </div>
-      <div class="col-tasks" id="tasks-in_progress"></div>
-    </div>
-
-    <!-- 已完成列 -->
-    <div class="kanban-col" id="col-done" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event, 'done')">
-      <div class="col-header">
-        <span class="col-dot" style="background: var(--done-color);"></span>
-        <span class="col-title">已完成 (Done)</span>
-        <span class="col-count" id="count-done">0</span>
-      </div>
-      <div class="col-tasks" id="tasks-done"></div>
+      <div class="list-scroll-body" id="listBody"></div>
     </div>
   </main>
 
-  <!-- 创建任务弹窗 -->
-  <div class="modal-backdrop" id="modalBackdrop">
-    <div class="modal">
-      <h3 class="modal-title">新建待办任务</h3>
-      <div class="form-group">
-        <label>任务标题 *</label>
-        <input type="text" id="taskTitle" class="form-control" placeholder="输入任务名称..." />
+  <!-- 创建/编辑任务弹窗 -->
+  <div class="modal-overlay" id="taskModal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h2 id="modalTitle">⚡ 新建待办任务</h2>
+        <button class="icon-btn" onclick="closeModal()">✕</button>
       </div>
-      <div class="form-group">
-        <label>详细描述</label>
-        <textarea id="taskDesc" class="form-control" rows="3" placeholder="可选备注信息..."></textarea>
-      </div>
-      <div class="form-group">
-        <label>初始状态</label>
-        <select id="taskStatus" class="form-control">
-          <option value="todo">待办 (To Do)</option>
-          <option value="in_progress">进行中 (In Progress)</option>
-          <option value="done">已完成 (Done)</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label>优先级</label>
-        <select id="taskPriority" class="form-control">
-          <option value="2">🔴 高优先级</option>
-          <option value="1" selected>🟡 中优先级</option>
-          <option value="0">⚪ 普通/低</option>
-        </select>
-      </div>
-      <div class="modal-actions">
-        <button class="btn" onclick="closeModal()">取消</button>
-        <button class="btn btn-primary" onclick="submitCreate()">创建</button>
-      </div>
+      <form id="taskForm" onsubmit="handleFormSubmit(event)">
+        <input type="hidden" id="editTaskId" value="" />
+        <div class="form-group">
+          <label>任务标题 (Title) *</label>
+          <input type="text" id="formTitle" class="form-input" placeholder="输入待办核心事项..." required autofocus />
+        </div>
+        <div class="form-group">
+          <label>备注描述 (Description)</label>
+          <textarea id="formDesc" class="form-input" rows="3" placeholder="可选详细背景或验收要求..."></textarea>
+        </div>
+        <div style="display: flex; gap: 12px;">
+          <div class="form-group" style="flex: 1;">
+            <label>状态 (Status)</label>
+            <select id="formStatus" class="form-input">
+              <option value="todo">📌 待办 (TODO)</option>
+              <option value="in_progress">⚡ 进行中 (IN PROGRESS)</option>
+              <option value="done">🎉 已完成 (DONE)</option>
+            </select>
+          </div>
+          <div class="form-group" style="flex: 1;">
+            <label>优先级 (Priority)</label>
+            <select id="formPriority" class="form-input">
+              <option value="2">🔴 高优 (P1)</option>
+              <option value="1" selected>🟡 中优 (P2)</option>
+              <option value="0">⚪ 低优 (P3)</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-brutal" onclick="closeModal()">取消</button>
+          <button type="submit" class="btn-brutal btn-primary-brutal" id="modalSubmitBtn">💾 保存任务</button>
+        </div>
+      </form>
     </div>
   </div>
 
   <script>
-    // 初始化 PocketBase 客户端 (同一域名端口即可)
+    // 初始化 PocketBase
     const pb = new PocketBase(window.location.origin);
     let allTodos = [];
+    let currentView = 'kanban'; // 'kanban' | 'list'
+    let searchQuery = '';
     let draggedTaskId = null;
 
+    // 页面加载入口
+    async function init() {
+      await loadTodos();
+      subscribeRealtime();
+      bindKeyboardShortcuts();
+    }
+
+    // 从服务端加载全量数据
     async function loadTodos() {
       try {
         allTodos = await pb.collection('todos').getFullList({ sort: 'order,-created' });
-        renderBoard();
+        renderAll();
       } catch (err) {
         console.error('加载任务失败:', err);
       }
     }
 
-    function renderBoard() {
+    // 统一渲染调度
+    function renderAll() {
+      updateDashboard();
+      if (currentView === 'kanban') {
+        renderKanban();
+      } else {
+        renderList();
+      }
+    }
+
+    // 统计面板与完成率进度条更新
+    function updateDashboard() {
+      const total = allTodos.length;
+      const todoCount = allTodos.filter(t => (t.status || 'todo') === 'todo').length;
+      const progCount = allTodos.filter(t => t.status === 'in_progress').length;
+      const doneCount = allTodos.filter(t => t.status === 'done').length;
+
+      document.getElementById('statAll').innerText = total;
+      document.getElementById('statTodo').innerText = todoCount;
+      document.getElementById('statProg').innerText = progCount;
+      document.getElementById('statDone').innerText = doneCount;
+
+      const pct = total === 0 ? 0 : Math.round((doneCount / total) * 100);
+      document.getElementById('progressFill').style.width = pct + '%';
+      document.getElementById('progressPct').innerText = pct + '%';
+    }
+
+    // 过滤检索
+    function getFilteredTodos() {
+      if (!searchQuery.trim()) return allTodos;
+      const q = searchQuery.toLowerCase();
+      return allTodos.filter(t =>
+        (t.title && t.title.toLowerCase().includes(q)) ||
+        (t.description && t.description.toLowerCase().includes(q))
+      );
+    }
+
+    // 渲染看板视图
+    function renderKanban() {
+      const filtered = getFilteredTodos();
       const statuses = ['todo', 'in_progress', 'done'];
       const counts = { todo: 0, in_progress: 0, done: 0 };
 
       statuses.forEach(st => {
-        const container = document.getElementById(`tasks-${st}`);
-        container.innerHTML = '';
+        const body = document.getElementById(`tasks-${st}`);
+        body.innerHTML = '';
       });
 
-      allTodos.forEach(item => {
+      filtered.forEach(item => {
         const st = item.status || 'todo';
         counts[st] = (counts[st] || 0) + 1;
-        const container = document.getElementById(`tasks-${st}`);
-        if (!container) return;
+        const body = document.getElementById(`tasks-${st}`);
+        if (!body) return;
 
-        const pLabel = item.priority === 2 ? '高' : (item.priority === 1 ? '中' : '低');
-        const pClass = `priority-${item.priority || 1}`;
-
-        const card = document.createElement('div');
-        card.className = 'task-card';
-        card.draggable = true;
-        card.id = `task-${item.id}`;
-
-        // 快捷状态按钮
-        let quickBtnHtml = '';
-        if (st === 'todo') {
-          quickBtnHtml = `<button class="action-btn" onclick="changeStatus('${item.id}', 'in_progress')" style="color:var(--prog-color);">▶ 开始</button>`;
-        } else if (st === 'in_progress') {
-          quickBtnHtml = `<button class="action-btn" onclick="changeStatus('${item.id}', 'done')" style="color:var(--done-color);">✓ 完成</button>`;
-        } else {
-          quickBtnHtml = `<button class="action-btn" onclick="changeStatus('${item.id}', 'todo')">↺ 重开</button>`;
-        }
-
-        card.innerHTML = `
-          <div class="task-card-top">
-            <span class="priority-badge ${pClass}">${pLabel}优</span>
-            <div class="task-actions">
-              ${quickBtnHtml}
-              <button class="action-btn" onclick="deleteTask('${item.id}')" title="删除">✕</button>
-            </div>
-          </div>
-          <div class="task-title" style="${st === 'done' ? 'text-decoration: line-through; color: #94a3b8;' : ''}">${escapeHtml(item.title)}</div>
-          ${item.description ? `<div class="task-desc">${escapeHtml(item.description)}</div>` : ''}
-        `;
-
-        // 拖拽事件监听
-        card.addEventListener('dragstart', (e) => {
-          draggedTaskId = item.id;
-          card.classList.add('dragging');
-          e.dataTransfer.setData('text/plain', item.id);
-        });
-        card.addEventListener('dragend', () => {
-          card.classList.remove('dragging');
-          draggedTaskId = null;
-        });
-
-        container.appendChild(card);
+        const card = createKanbanCard(item);
+        body.appendChild(card);
       });
 
+      // 检查空状态
       statuses.forEach(st => {
-        document.getElementById(`count-${st}`).innerText = counts[st] || 0;
+        document.getElementById(`count-${st}`).innerText = counts[st];
+        const body = document.getElementById(`tasks-${st}`);
+        if (counts[st] === 0) {
+          body.innerHTML = `
+            <div class="empty-placeholder">
+              <span class="empty-icon">${st === 'done' ? '🎯' : '📦'}</span>
+              <span>暂无此状态任务</span>
+            </div>
+          `;
+        }
       });
     }
 
-    // 拖拽处理
+    // 创建看板卡片元素
+    function createKanbanCard(item) {
+      const card = document.createElement('div');
+      card.className = 'task-card';
+      card.draggable = true;
+      card.id = `card-${item.id}`;
+
+      const pVal = item.priority ?? 1;
+      const pText = pVal === 2 ? 'P1 高优' : (pVal === 1 ? 'P2 中优' : 'P3 低优');
+      const isDone = item.status === 'done';
+
+      // 快速推进按钮
+      let stepBtn = '';
+      if (item.status === 'todo') {
+        stepBtn = `<button class="icon-btn btn-step-start" onclick="updateTaskStatus('${item.id}', 'in_progress')" title="推进到进行中">▶ 开始</button>`;
+      } else if (item.status === 'in_progress') {
+        stepBtn = `<button class="icon-btn btn-step-next" onclick="markTaskDone('${item.id}')" title="标记完成">✓ 搞定</button>`;
+      } else {
+        stepBtn = `<button class="icon-btn btn-step-reset" onclick="updateTaskStatus('${item.id}', 'todo')" title="重新开启">↺ 重开</button>`;
+      }
+
+      card.innerHTML = `
+        <div class="card-top">
+          <span class="priority-tag priority-${pVal}">${pText}</span>
+          <div class="card-actions">
+            ${stepBtn}
+            <button class="icon-btn" onclick="openEditModal('${item.id}')" title="编辑任务">✎</button>
+            <button class="icon-btn" onclick="deleteTask('${item.id}')" title="删除">✕</button>
+          </div>
+        </div>
+        <div class="card-title ${isDone ? 'done' : ''}">${escapeHtml(item.title)}</div>
+        ${item.description ? `<div class="card-desc">${escapeHtml(item.description)}</div>` : ''}
+      `;
+
+      // 拖拽事件监听
+      card.addEventListener('dragstart', (e) => {
+        draggedTaskId = item.id;
+        card.classList.add('dragging');
+        e.dataTransfer.setData('text/plain', item.id);
+      });
+      card.addEventListener('dragend', () => {
+        card.classList.remove('dragging');
+        draggedTaskId = null;
+      });
+
+      return card;
+    }
+
+    // 渲染清单列表视图
+    function renderList() {
+      const filtered = getFilteredTodos();
+      const listBody = document.getElementById('listBody');
+      listBody.innerHTML = '';
+
+      if (filtered.length === 0) {
+        listBody.innerHTML = `
+          <div class="empty-placeholder" style="padding: 60px;">
+            <span class="empty-icon">📂</span>
+            <span>没有匹配的清单事项</span>
+          </div>
+        `;
+        return;
+      }
+
+      filtered.forEach(item => {
+        const row = document.createElement('div');
+        row.className = 'list-row';
+
+        const isDone = item.status === 'done';
+        const pVal = item.priority ?? 1;
+        const pText = pVal === 2 ? 'P1 高优' : (pVal === 1 ? 'P2 中优' : 'P3 低优');
+
+        let stText = '📌 待办';
+        let stClass = 'st-todo';
+        if (item.status === 'in_progress') {
+          stText = '⚡ 进行中';
+          stClass = 'st-in_progress';
+        } else if (item.status === 'done') {
+          stText = '🎉 已完成';
+          stClass = 'st-done';
+        }
+
+        row.innerHTML = `
+          <div>
+            <div class="list-checkbox ${isDone ? 'checked' : ''}" onclick="toggleDoneStatus('${item.id}')">
+              ${isDone ? '✓' : ''}
+            </div>
+          </div>
+          <div class="list-row-title">
+            <span style="${isDone ? 'text-decoration: line-through; color: var(--c-muted);' : ''}">${escapeHtml(item.title)}</span>
+            ${item.description ? `<span class="list-row-desc">${escapeHtml(item.description)}</span>` : ''}
+          </div>
+          <div>
+            <span class="priority-tag priority-${pVal}">${pText}</span>
+          </div>
+          <div>
+            <span class="status-badge ${stClass}">${stText}</span>
+          </div>
+          <div style="display: flex; gap: 6px;">
+            <button class="icon-btn" onclick="openEditModal('${item.id}')">编辑</button>
+            <button class="icon-btn" onclick="deleteTask('${item.id}')">删除</button>
+          </div>
+        `;
+        listBody.appendChild(row);
+      });
+    }
+
+    // 视图切换
+    function switchView(view) {
+      currentView = view;
+      document.getElementById('btnViewKanban').classList.toggle('active', view === 'kanban');
+      document.getElementById('btnViewList').classList.toggle('active', view === 'list');
+      document.getElementById('kanbanView').style.display = view === 'kanban' ? 'flex' : 'none';
+      document.getElementById('listView').style.display = view === 'list' ? 'flex' : 'none';
+      renderAll();
+    }
+
+    // 搜索输入过滤
+    function handleSearch(val) {
+      searchQuery = val;
+      renderAll();
+    }
+
+    // 拖拽相关
     function handleDragOver(e) {
       e.preventDefault();
       e.currentTarget.classList.add('drag-over');
@@ -439,9 +1055,11 @@
 
       const item = allTodos.find(t => t.id === id);
       if (item && item.status !== targetStatus) {
-        // 乐观更新
+        if (targetStatus === 'done') {
+          triggerConfetti();
+        }
         item.status = targetStatus;
-        renderBoard();
+        renderAll();
         try {
           await pb.collection('todos').update(id, { status: targetStatus });
         } catch (err) {
@@ -451,25 +1069,41 @@
       }
     }
 
-    // 快捷切换状态
-    async function changeStatus(id, newStatus) {
+    // 快速状态转换
+    async function updateTaskStatus(id, newStatus) {
       const item = allTodos.find(t => t.id === id);
-      if (item) {
-        item.status = newStatus;
-        renderBoard();
-        try {
-          await pb.collection('todos').update(id, { status: newStatus });
-        } catch (err) {
-          loadTodos();
-        }
+      if (!item) return;
+      item.status = newStatus;
+      renderAll();
+      try {
+        await pb.collection('todos').update(id, { status: newStatus });
+      } catch (err) {
+        loadTodos();
       }
+    }
+
+    // 标记完成 + 触发庆祝动效
+    async function markTaskDone(id) {
+      triggerConfetti();
+      await updateTaskStatus(id, 'done');
+    }
+
+    // 清单复选框点击触发
+    async function toggleDoneStatus(id) {
+      const item = allTodos.find(t => t.id === id);
+      if (!item) return;
+      const newStatus = item.status === 'done' ? 'todo' : 'done';
+      if (newStatus === 'done') {
+        triggerConfetti();
+      }
+      await updateTaskStatus(id, newStatus);
     }
 
     // 删除任务
     async function deleteTask(id) {
-      if (!confirm('确定删除该任务吗？')) return;
+      if (!confirm('💥 确定要永久删除该项任务吗？')) return;
       allTodos = allTodos.filter(t => t.id !== id);
-      renderBoard();
+      renderAll();
       try {
         await pb.collection('todos').delete(id);
       } catch (err) {
@@ -477,7 +1111,88 @@
       }
     }
 
-    // 实时订阅 PocketBase SSE
+    // 弹窗控制：新建
+    function openCreateModal() {
+      document.getElementById('modalTitle').innerText = '⚡ 新建待办任务';
+      document.getElementById('modalSubmitBtn').innerText = '💾 保存任务';
+      document.getElementById('editTaskId').value = '';
+      document.getElementById('formTitle').value = '';
+      document.getElementById('formDesc').value = '';
+      document.getElementById('formStatus').value = 'todo';
+      document.getElementById('formPriority').value = '1';
+      document.getElementById('taskModal').classList.add('active');
+      setTimeout(() => document.getElementById('formTitle').focus(), 50);
+    }
+
+    // 弹窗控制：编辑
+    function openEditModal(id) {
+      const item = allTodos.find(t => t.id === id);
+      if (!item) return;
+
+      document.getElementById('modalTitle').innerText = '✎ 编辑任务详情';
+      document.getElementById('modalSubmitBtn').innerText = '💾 更新任务';
+      document.getElementById('editTaskId').value = item.id;
+      document.getElementById('formTitle').value = item.title || '';
+      document.getElementById('formDesc').value = item.description || '';
+      document.getElementById('formStatus').value = item.status || 'todo';
+      document.getElementById('formPriority').value = item.priority ?? 1;
+      document.getElementById('taskModal').classList.add('active');
+      setTimeout(() => document.getElementById('formTitle').focus(), 50);
+    }
+
+    function closeModal() {
+      document.getElementById('taskModal').classList.remove('active');
+    }
+
+    // 提交表单 (新增 or 编辑)
+    async function handleFormSubmit(e) {
+      e.preventDefault();
+      const id = document.getElementById('editTaskId').value;
+      const title = document.getElementById('formTitle').value.trim();
+      const description = document.getElementById('formDesc').value.trim();
+      const status = document.getElementById('formStatus').value;
+      const priority = parseInt(document.getElementById('formPriority').value, 10);
+
+      if (!title) return;
+      closeModal();
+
+      if (id) {
+        // 编辑模式
+        const item = allTodos.find(t => t.id === id);
+        if (item) {
+          item.title = title;
+          item.description = description;
+          item.status = status;
+          item.priority = priority;
+          renderAll();
+        }
+        try {
+          await pb.collection('todos').update(id, { title, description, status, priority });
+        } catch (err) {
+          alert('保存失败: ' + err.message);
+          loadTodos();
+        }
+      } else {
+        // 新建模式
+        try {
+          const record = await pb.collection('todos').create({
+            title,
+            description,
+            status,
+            priority,
+            order: Date.now()
+          });
+          if (!allTodos.some(t => t.id === record.id)) {
+            allTodos.push(record);
+            renderAll();
+          }
+        } catch (err) {
+          alert('创建失败: ' + err.message);
+        }
+      }
+    }
+
+    // 实时 PocketBase SSE 订阅
     function subscribeRealtime() {
       pb.collection('todos').subscribe('*', function (e) {
         if (e.action === 'create') {
@@ -491,43 +1206,80 @@
         } else if (e.action === 'delete') {
           allTodos = allTodos.filter(t => t.id !== e.record.id);
         }
-        renderBoard();
+        renderAll();
       });
     }
 
-    // 弹窗控制
-    function openModal() {
-      document.getElementById('taskTitle').value = '';
-      document.getElementById('taskDesc').value = '';
-      document.getElementById('modalBackdrop').classList.add('open');
-      document.getElementById('taskTitle').focus();
-    }
-    function closeModal() {
-      document.getElementById('modalBackdrop').classList.remove('open');
-    }
-    async function submitCreate() {
-      const title = document.getElementById('taskTitle').value.trim();
-      if (!title) { alert('请输入任务标题'); return; }
-      const desc = document.getElementById('taskDesc').value.trim();
-      const status = document.getElementById('taskStatus').value;
-      const priority = parseInt(document.getElementById('taskPriority').value, 10);
-
-      closeModal();
-      try {
-        const record = await pb.collection('todos').create({
-          title,
-          description: desc,
-          status,
-          priority,
-          order: Date.now()
-        });
-        if (!allTodos.some(t => t.id === record.id)) {
-          allTodos.push(record);
-          renderBoard();
+    // 全局快捷键支持
+    function bindKeyboardShortcuts() {
+      document.addEventListener('keydown', (e) => {
+        // Esc 关闭弹窗
+        if (e.key === 'Escape') {
+          closeModal();
         }
-      } catch (err) {
-        alert('创建失败: ' + err.message);
+        // "/" 键快速聚焦搜索框 (非输入状态下)
+        if (e.key === '/' && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
+          e.preventDefault();
+          document.getElementById('searchInput').focus();
+        }
+      });
+    }
+
+    // 极简轻量 Canvas 纸屑粒子撒花动效 (无需任何外链 CDN)
+    function triggerConfetti() {
+      const canvas = document.getElementById('confetti-canvas');
+      const ctx = canvas.getContext('2d');
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+
+      const particles = [];
+      const colors = ['#fef08a', '#bae6fd', '#bbf7d0', '#fbcfe8', '#f87171', '#000000'];
+
+      for (let i = 0; i < 60; i++) {
+        particles.push({
+          x: canvas.width / 2 + (Math.random() - 0.5) * 300,
+          y: canvas.height / 2 + (Math.random() - 0.5) * 100,
+          vx: (Math.random() - 0.5) * 12,
+          vy: (Math.random() - 1.2) * 10,
+          size: Math.random() * 8 + 5,
+          color: colors[Math.floor(Math.random() * colors.length)],
+          rotation: Math.random() * 360,
+          vRot: (Math.random() - 0.5) * 10
+        });
       }
+
+      let frame = 0;
+      function animate() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        let alive = false;
+        particles.forEach(p => {
+          p.x += p.vx;
+          p.y += p.vy;
+          p.vy += 0.35; // 重力
+          p.rotation += p.vRot;
+
+          if (p.y < canvas.height) {
+            alive = true;
+            ctx.save();
+            ctx.translate(p.x, p.y);
+            ctx.rotate((p.rotation * Math.PI) / 180);
+            ctx.fillStyle = p.color;
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 1.5;
+            ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+            ctx.strokeRect(-p.size / 2, -p.size / 2, p.size, p.size);
+            ctx.restore();
+          }
+        });
+
+        frame++;
+        if (alive && frame < 120) {
+          requestAnimationFrame(animate);
+        } else {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+      }
+      requestAnimationFrame(animate);
     }
 
     function escapeHtml(str) {
@@ -537,9 +1289,8 @@
       }[tag] || tag));
     }
 
-    // 页面初始化
-    loadTodos();
-    subscribeRealtime();
+    // 启动
+    init();
   </script>
 </body>
 </html>

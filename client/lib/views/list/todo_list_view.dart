@@ -37,72 +37,113 @@ class _TodoListViewState extends State<TodoListView> {
 
     return Column(
       children: [
-        // 筛选标签栏
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        // 筛选标签栏 (Neo-Brutalism Filters)
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            border: Border(bottom: BorderSide(color: Colors.black, width: 2)),
+          ),
           child: Row(
             children: [
-              FilterChip(
-                label: Text('全部 (${provider.todos.length})'),
-                selected: _filter == 'all',
-                onSelected: (_) => setState(() => _filter = 'all'),
-              ),
+              _buildFilterChip('ALL (${provider.todos.length})', 'all'),
               const SizedBox(width: 8),
-              FilterChip(
-                label: Text('未完成 (${provider.todos.where((t) => !t.isCompleted).length})'),
-                selected: _filter == 'active',
-                onSelected: (_) => setState(() => _filter = 'active'),
-              ),
+              _buildFilterChip('TODO (${provider.todos.where((t) => !t.isCompleted).length})', 'active'),
               const SizedBox(width: 8),
-              FilterChip(
-                label: Text('已完成 (${provider.todos.where((t) => t.isCompleted).length})'),
-                selected: _filter == 'completed',
-                onSelected: (_) => setState(() => _filter = 'completed'),
-              ),
+              _buildFilterChip('DONE (${provider.todos.where((t) => t.isCompleted).length})', 'completed'),
             ],
           ),
         ),
-        const Divider(height: 1),
+
         // 列表展示
         Expanded(
           child: filteredList.isEmpty
-              ? const Center(
-                  child: Text(
-                    '当前无匹配任务',
-                    style: TextStyle(color: Colors.grey),
+              ? Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text('📂', style: TextStyle(fontSize: 32)),
+                      const SizedBox(height: 8),
+                      Text(
+                        '当前分类暂无任务',
+                        style: TextStyle(
+                          color: Colors.grey.shade600,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: 'monospace',
+                        ),
+                      ),
+                    ],
                   ),
                 )
-              : ListView.separated(
-                  padding: const EdgeInsets.all(12),
+              : ListView.builder(
+                  padding: const EdgeInsets.all(14),
                   itemCount: filteredList.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 4),
                   itemBuilder: (context, index) {
                     final item = filteredList[index];
-                    final priorityColor = Color(item.priority.colorHex);
+                    Color pBg = const Color(0xFFF4F4F5);
+                    Color pFg = Colors.black;
+                    String pText = 'P3 低优';
+                    if (item.priority == TodoPriority.high) {
+                      pBg = const Color(0xFFF87171);
+                      pFg = Colors.white;
+                      pText = 'P1 高优';
+                    } else if (item.priority == TodoPriority.medium) {
+                      pBg = const Color(0xFFFEF08A);
+                      pFg = Colors.black;
+                      pText = 'P2 中优';
+                    }
 
-                    return Card(
-                      elevation: 1,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        border: Border.all(color: Colors.black, width: 2),
+                        borderRadius: BorderRadius.circular(6),
+                        boxShadow: const [
+                          BoxShadow(color: Colors.black, offset: Offset(2, 2)),
+                        ],
                       ),
                       child: ListTile(
-                        leading: Checkbox(
-                          value: item.isCompleted,
-                          activeColor: Colors.green,
-                          shape: const CircleBorder(),
-                          onChanged: (val) {
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                        leading: InkWell(
+                          onTap: () {
                             provider.changeTaskStatus(
                               item.id,
-                              (val == true) ? TodoStatus.done : TodoStatus.todo,
+                              item.isCompleted ? TodoStatus.todo : TodoStatus.done,
                             );
                           },
+                          child: Container(
+                            width: 24,
+                            height: 24,
+                            decoration: BoxDecoration(
+                              color: item.isCompleted ? const Color(0xFF4ADE80) : Colors.white,
+                              border: Border.all(color: Colors.black, width: 2),
+                              borderRadius: BorderRadius.circular(4),
+                              boxShadow: const [
+                                BoxShadow(color: Colors.black, offset: Offset(1, 1)),
+                              ],
+                            ),
+                            child: item.isCompleted
+                                ? const Center(
+                                    child: Text(
+                                      '✓',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w900,
+                                        color: Colors.black,
+                                      ),
+                                    ),
+                                  )
+                                : null,
+                          ),
                         ),
                         title: Text(
                           item.title,
                           style: TextStyle(
-                            fontWeight: FontWeight.w500,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 14,
                             decoration: item.isCompleted ? TextDecoration.lineThrough : null,
-                            color: item.isCompleted ? Colors.grey : null,
+                            color: item.isCompleted ? Colors.grey.shade500 : Colors.black,
                           ),
                         ),
                         subtitle: item.description.isNotEmpty
@@ -110,6 +151,7 @@ class _TodoListViewState extends State<TodoListView> {
                                 item.description,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
+                                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
                               )
                             : null,
                         trailing: Row(
@@ -118,21 +160,50 @@ class _TodoListViewState extends State<TodoListView> {
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                               decoration: BoxDecoration(
-                                color: priorityColor.withOpacity(0.15),
-                                borderRadius: BorderRadius.circular(4),
+                                color: pBg,
+                                border: Border.all(color: Colors.black, width: 1.5),
+                                borderRadius: BorderRadius.circular(3),
                               ),
                               child: Text(
-                                item.priority.label,
+                                pText,
                                 style: TextStyle(
-                                  fontSize: 11,
-                                  color: priorityColor,
-                                  fontWeight: FontWeight.bold,
+                                  fontSize: 10,
+                                  color: pFg,
+                                  fontWeight: FontWeight.w900,
+                                  fontFamily: 'monospace',
                                 ),
                               ),
                             ),
-                            IconButton(
-                              icon: const Icon(Icons.delete_outline, size: 18, color: Colors.grey),
-                              onPressed: () => provider.deleteTask(item.id),
+                            const SizedBox(width: 8),
+                            InkWell(
+                              onTap: () {
+                                showDialog(
+                                  context: context,
+                                  builder: (_) => TodoDialog(existingTodo: item),
+                                );
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  border: Border.all(color: Colors.black, width: 1.5),
+                                  borderRadius: BorderRadius.circular(3),
+                                ),
+                                child: const Text('✎', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            InkWell(
+                              onTap: () => provider.deleteTask(item.id),
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  border: Border.all(color: Colors.black, width: 1.5),
+                                  borderRadius: BorderRadius.circular(3),
+                                ),
+                                child: const Text('✕', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+                              ),
                             ),
                           ],
                         ),
@@ -148,6 +219,31 @@ class _TodoListViewState extends State<TodoListView> {
                 ),
         ),
       ],
+    );
+  }
+
+  Widget _buildFilterChip(String label, String value) {
+    final isSelected = _filter == value;
+    return InkWell(
+      onTap: () => setState(() => _filter = value),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFFFEF08A) : Colors.white,
+          border: Border.all(color: Colors.black, width: 1.5),
+          borderRadius: BorderRadius.circular(4),
+          boxShadow: isSelected ? const [BoxShadow(color: Colors.black, offset: Offset(1.5, 1.5))] : null,
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: isSelected ? FontWeight.w900 : FontWeight.bold,
+            color: Colors.black,
+            fontFamily: 'monospace',
+          ),
+        ),
+      ),
     );
   }
 }
