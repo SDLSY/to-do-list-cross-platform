@@ -201,6 +201,56 @@ flutter build apk --release
 
 ---
 
+## ☁️ 4. 云服务器部署与自定义域名配置指南
+
+待办服务支持一键部署到任意拥有公网 IP 的云服务器（如阿里云、腾讯云等），无需依赖本地电脑开机，实现 24 小时全球随时访问。
+
+### 1. 阿里云公网访问入口
+服务已成功部署并运行在云端：
+- **公网 Web 看板**：`http://47.116.20.106:8090/`
+- **数据管理后台**：`http://47.116.20.106:8090/_/`
+- **API 接口地址**：`http://47.116.20.106:8090/api/`
+
+> **安全组放行说明**：请确保在云服务器控制台的安全组规则中，入方向已放行 **`8090`** 端口（授权对象：`0.0.0.0/0`）。
+
+### 2. 绑定自定义域名 (Nginx 反向代理配置)
+如果希望使用自己的独立域名（如 `https://todo.yourdomain.com`）直接访问且无需输入端口号，可在服务器的 Nginx 中添加如下反向代理配置（自带 SSE 长连接支持）：
+
+```nginx
+server {
+    listen 80;
+    server_name todo.yourdomain.com; # 替换为您的域名
+
+    location / {
+        proxy_pass http://127.0.0.1:8090;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # 关键配置：针对 SSE 实时事件流关闭缓冲
+        proxy_buffering off;
+        proxy_cache off;
+        proxy_read_timeout 86400s;
+    }
+}
+```
+
+### 3. 多端连接公网服务器
+在 Windows 桌面端或 Android 手机端：
+1. 点击右上角 **☁️ 同步设置**；
+2. 将地址填为云端公网地址：
+   ```text
+   http://47.116.20.106:8090
+   ```
+   *(或填入您绑定的自定义域名如 `https://todo.yourdomain.com`)*
+3. 点击**“测试并保存”**，即可脱离局域网限制，在任何网络环境（如手机 5G）下实现全天候毫秒级实时同步！
+
+---
+
 ## ❓ 常见问题排查 (FAQ)
 
 ### Q1: 手机客户端提示“无法连接服务器”？

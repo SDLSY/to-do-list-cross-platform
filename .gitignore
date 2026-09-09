@@ -17,6 +17,13 @@ client/android/.gradle/
 client/android/local.properties
 client/android/**/build/
 
+# 密钥与证书凭据（严格禁止上传）
+*.pem
+*.key
+*.rsa
+*_rsa
+id_*
+
 # 编辑器配置
 .idea/
 .vscode/
