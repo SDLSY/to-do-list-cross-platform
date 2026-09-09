@@ -871,7 +871,7 @@
     // 3. 拉取全量任务
     async function loadTodos() {
       try {
-        const data = await apiRequest('collections/todos/records?sort=order,-created&perPage=500');
+        const data = await apiRequest('collections/todos/records?sort=order&perPage=500');
         allTodos = data.items || [];
         renderAll();
       } catch (err) {

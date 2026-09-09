@@ -52,7 +52,7 @@ class PocketBaseService {
   Future<List<TodoItem>> fetchTodos() async {
     try {
       final records = await _pb.collection('todos').getFullList(
-        sort: 'order,-created',
+        sort: 'order',
       );
       _isConnected = true;
       return records.map((r) => TodoItem.fromRecord(r)).toList();
