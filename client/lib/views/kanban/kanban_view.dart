@@ -111,10 +111,10 @@ class _KanbanColumnState extends State<KanbanColumn> {
     final items = provider.getListByStatus(widget.status);
 
     return DragTarget<TodoItem>(
-      onWillAccept: (item) => item != null && item.status != widget.status,
-      onAccept: (item) {
+      onWillAcceptWithDetails: (details) => details.data.status != widget.status,
+      onAcceptWithDetails: (details) {
         setState(() => _isDragHovered = false);
-        provider.changeTaskStatus(item.id, widget.status);
+        provider.changeTaskStatus(details.data.id, widget.status);
       },
       onLeave: (_) => setState(() => _isDragHovered = false),
       onMove: (_) {

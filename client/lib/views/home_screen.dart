@@ -26,6 +26,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final doneCount = provider.todos.where((t) => t.isCompleted).length;
     final todoCount = provider.todos.where((t) => t.status == TodoStatus.todo).length;
     final progCount = provider.todos.where((t) => t.status == TodoStatus.inProgress).length;
+    final overdueCount = provider.todos.where((t) => t.isOverdue).length;
     final double pct = total == 0 ? 0.0 : (doneCount / total);
 
     return Scaffold(
@@ -130,6 +131,10 @@ class _HomeScreenState extends State<HomeScreen> {
                                 _buildStatChip('PROG', '$progCount', const Color(0xFF0284C7)),
                                 const SizedBox(width: 8),
                                 _buildStatChip('DONE', '$doneCount', const Color(0xFF16A34A)),
+                                if (overdueCount > 0) ...[
+                                  const SizedBox(width: 8),
+                                  _buildStatChip('OVERDUE', '$overdueCount', const Color(0xFFDC2626)),
+                                ],
                                 const SizedBox(width: 12),
                                 // 进度条
                                 SizedBox(

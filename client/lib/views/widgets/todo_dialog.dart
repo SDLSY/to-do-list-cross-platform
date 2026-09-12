@@ -42,9 +42,10 @@ class _TodoDialogState extends State<TodoDialog> {
 
   Future<void> _pickDate() async {
     final now = DateTime.now();
+    final initial = _dueDate != null ? (DateTime.tryParse(_dueDate!) ?? now) : now;
     final picked = await showDatePicker(
       context: context,
-      initialDate: now,
+      initialDate: initial,
       firstDate: now.subtract(const Duration(days: 365)),
       lastDate: now.add(const Duration(days: 3650)),
     );
@@ -53,6 +54,38 @@ class _TodoDialogState extends State<TodoDialog> {
         _dueDate = DateFormat('yyyy-MM-dd').format(picked);
       });
     }
+  }
+
+  void _setQuickDate(int daysFromNow) {
+    final target = DateTime.now().add(Duration(days: daysFromNow));
+    setState(() {
+      _dueDate = DateFormat('yyyy-MM-dd').format(target);
+    });
+  }
+
+  void _setNextWeekday(int targetWeekday) {
+    final now = DateTime.now();
+    int daysToAdd = (targetWeekday - now.weekday + 7) % 7;
+    if (daysToAdd == 0) daysToAdd = 7;
+    final target = now.add(Duration(days: daysToAdd));
+    setState(() {
+      _dueDate = DateFormat('yyyy-MM-dd').format(target);
+    });
+  }
+
+  String _getDueDateDescription() {
+    if (_dueDate == null) return '';
+    final parsed = DateTime.tryParse(_dueDate!);
+    if (parsed == null) return '';
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final due = DateTime(parsed.year, parsed.month, parsed.day);
+    final diff = due.difference(today).inDays;
+    if (diff < 0) return '⚠️ 已逾期 ${-diff} 天';
+    if (diff == 0) return '⏰ 今天截止';
+    if (diff == 1) return '📅 明天截止';
+    if (diff <= 7) return '📅 $diff 天后截止';
+    return '';
   }
 
   void _save() {
@@ -229,7 +262,7 @@ class _TodoDialogState extends State<TodoDialog> {
                 const Text('当前状态', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, fontFamily: 'monospace')),
                 const SizedBox(height: 4),
                 DropdownButtonFormField<TodoStatus>(
-                  value: _selectedStatus,
+                  initialValue: _selectedStatus,
                   decoration: const InputDecoration(
                     contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     enabledBorder: OutlineInputBorder(
@@ -252,38 +285,93 @@ class _TodoDialogState extends State<TodoDialog> {
                 const SizedBox(height: 14),
 
                 // 截止日期
-                Row(
+                const Text('截止日期 (可选)', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, fontFamily: 'monospace')),
+                const SizedBox(height: 6),
+
+                // 快捷预设按钮组
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
                   children: [
-                    InkWell(
+                    _buildQuickDateChip(label: '今天', onTap: () => _setQuickDate(0)),
+                    _buildQuickDateChip(label: '明天', onTap: () => _setQuickDate(1)),
+                    _buildQuickDateChip(label: '本周日', onTap: () => _setNextWeekday(DateTime.sunday)),
+                    _buildQuickDateChip(label: '下周一', onTap: () => _setNextWeekday(DateTime.monday)),
+                    _buildQuickDateChip(
+                      label: '📅 日历选择...',
                       onTap: _pickDate,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          border: Border.all(color: Colors.black, width: 1.5),
-                          borderRadius: BorderRadius.circular(4),
-                          boxShadow: const [BoxShadow(color: Colors.black, offset: Offset(1.5, 1.5))],
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.calendar_today_outlined, size: 14, color: Colors.black),
-                            const SizedBox(width: 6),
-                            Text(
-                              _dueDate == null ? '设置截止日期' : '截止: $_dueDate',
-                              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
-                            ),
-                          ],
-                        ),
-                      ),
+                      color: const Color(0xFFE0F2FE),
                     ),
-                    if (_dueDate != null) ...[
-                      const SizedBox(width: 8),
-                      InkWell(
-                        onTap: () => setState(() => _dueDate = null),
-                        child: const Text('✕ 清除', style: TextStyle(fontSize: 11, color: Colors.red, fontWeight: FontWeight.bold)),
-                      ),
-                    ],
                   ],
+                ),
+                const SizedBox(height: 8),
+
+                // 当前截止日期详情展示与清除
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: _dueDate != null ? const Color(0xFFFFFBEB) : const Color(0xFFF4F4F5),
+                    border: Border.all(
+                      color: _dueDate != null ? Colors.black : const Color(0xFFD4D4D8),
+                      width: 1.5,
+                    ),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        _dueDate != null ? Icons.event_note : Icons.calendar_today_outlined,
+                        size: 16,
+                        color: _dueDate != null ? Colors.black : Colors.grey.shade600,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _dueDate != null
+                            ? RichText(
+                                text: TextSpan(
+                                  style: const TextStyle(fontSize: 12, color: Colors.black),
+                                  children: [
+                                    TextSpan(
+                                      text: _dueDate!,
+                                      style: const TextStyle(fontWeight: FontWeight.w900, fontFamily: 'monospace'),
+                                    ),
+                                    if (_getDueDateDescription().isNotEmpty) ...[
+                                      const TextSpan(text: '  '),
+                                      TextSpan(
+                                        text: _getDueDateDescription(),
+                                        style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFFB45309)),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              )
+                            : Text(
+                                '未设置截止日期',
+                                style: TextStyle(fontSize: 12, color: Colors.grey.shade600, fontWeight: FontWeight.bold),
+                              ),
+                      ),
+                      if (_dueDate != null)
+                        InkWell(
+                          onTap: () => setState(() => _dueDate = null),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFEE2E2),
+                              border: Border.all(color: Colors.black, width: 1),
+                              borderRadius: BorderRadius.circular(3),
+                            ),
+                            child: const Text(
+                              '✕ 清除',
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: Color(0xFFDC2626),
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 22),
 
@@ -326,6 +414,29 @@ class _TodoDialogState extends State<TodoDialog> {
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQuickDateChip({
+    required String label,
+    required VoidCallback onTap,
+    Color color = Colors.white,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: color,
+          border: Border.all(color: Colors.black, width: 1.5),
+          borderRadius: BorderRadius.circular(4),
+          boxShadow: const [BoxShadow(color: Colors.black, offset: Offset(1.5, 1.5))],
+        ),
+        child: Text(
+          label,
+          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800),
         ),
       ),
     );

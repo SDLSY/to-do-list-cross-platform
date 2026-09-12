@@ -60,6 +60,83 @@ class TodoItem {
 
   bool get isCompleted => status == TodoStatus.done;
 
+  bool get hasDueDate => dueDate != null && dueDate!.trim().isNotEmpty;
+
+  DateTime? get dueDateTime {
+    if (!hasDueDate) return null;
+    return DateTime.tryParse(dueDate!);
+  }
+
+  static DateTime _stripTime(DateTime dt) => DateTime(dt.year, dt.month, dt.day);
+
+  bool get isOverdue {
+    if (isCompleted || !hasDueDate) return false;
+    final dt = dueDateTime;
+    if (dt == null) return false;
+    final today = _stripTime(DateTime.now());
+    final dueDay = _stripTime(dt);
+    return dueDay.isBefore(today);
+  }
+
+  bool get isDueToday {
+    if (!hasDueDate) return false;
+    final dt = dueDateTime;
+    if (dt == null) return false;
+    final today = _stripTime(DateTime.now());
+    final dueDay = _stripTime(dt);
+    return dueDay.isAtSameMomentAs(today);
+  }
+
+  bool get isDueTomorrow {
+    if (!hasDueDate) return false;
+    final dt = dueDateTime;
+    if (dt == null) return false;
+    final today = _stripTime(DateTime.now());
+    final tomorrow = today.add(const Duration(days: 1));
+    final dueDay = _stripTime(dt);
+    return dueDay.isAtSameMomentAs(tomorrow);
+  }
+
+  int? get overdueDays {
+    if (!isOverdue) return null;
+    final dt = dueDateTime;
+    if (dt == null) return null;
+    final today = _stripTime(DateTime.now());
+    final dueDay = _stripTime(dt);
+    return today.difference(dueDay).inDays;
+  }
+
+  int? get daysUntilDue {
+    if (!hasDueDate) return null;
+    final dt = dueDateTime;
+    if (dt == null) return null;
+    final today = _stripTime(DateTime.now());
+    final dueDay = _stripTime(dt);
+    return dueDay.difference(today).inDays;
+  }
+
+  String get dueBadgeText {
+    if (!hasDueDate) return '';
+    if (isCompleted) {
+      return dueDate!;
+    }
+    if (isOverdue) {
+      final days = overdueDays ?? 0;
+      return days > 0 ? '已逾期 $days 天' : '已逾期';
+    }
+    if (isDueToday) {
+      return '今天截止';
+    }
+    if (isDueTomorrow) {
+      return '明天截止';
+    }
+    final left = daysUntilDue;
+    if (left != null && left <= 7 && left > 0) {
+      return '还剩 $left 天';
+    }
+    return dueDate!;
+  }
+
   TodoItem copyWith({
     String? id,
     String? title,
@@ -97,8 +174,8 @@ class TodoItem {
       dueDate: record.getStringValue('due_date').isEmpty
           ? null
           : record.getStringValue('due_date'),
-      created: DateTime.tryParse(record.created),
-      updated: DateTime.tryParse(record.updated),
+      created: DateTime.tryParse(record.getStringValue('created')),
+      updated: DateTime.tryParse(record.getStringValue('updated')),
     );
   }
 

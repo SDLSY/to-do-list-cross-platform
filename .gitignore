@@ -16,6 +16,7 @@ client/build/
 client/android/.gradle/
 client/android/local.properties
 client/android/**/build/
+client/android/**/GeneratedPluginRegistrant.java
 
 # 密钥与证书凭据（严格禁止上传）
 *.pem

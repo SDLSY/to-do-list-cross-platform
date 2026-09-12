@@ -38,8 +38,7 @@ class TodoSyncApp extends StatelessWidget {
           seedColor: const Color(0xFFFEF08A),
           primary: Colors.black,
           secondary: const Color(0xFF38BDF8),
-          surface: Colors.white,
-          background: const Color(0xFFFFFDF8),
+          surface: const Color(0xFFFFFDF8),
         ),
         appBarTheme: const AppBarTheme(
           backgroundColor: Colors.white,
@@ -47,7 +46,7 @@ class TodoSyncApp extends StatelessWidget {
           elevation: 0,
           scrolledUnderElevation: 0,
         ),
-        cardTheme: CardTheme(
+        cardTheme: CardThemeData(
           elevation: 0,
           margin: EdgeInsets.zero,
           shape: RoundedRectangleBorder(
@@ -55,7 +54,7 @@ class TodoSyncApp extends StatelessWidget {
             side: const BorderSide(color: Colors.black, width: 2),
           ),
         ),
-        dialogTheme: DialogTheme(
+        dialogTheme: DialogThemeData(
           backgroundColor: Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(8),

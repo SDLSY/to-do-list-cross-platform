@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/todo.dart';
 import '../../providers/todo_provider.dart';
+import '../widgets/due_date_badge.dart';
 import '../widgets/todo_dialog.dart';
 
 class TodoListView extends StatefulWidget {
@@ -12,7 +13,8 @@ class TodoListView extends StatefulWidget {
 }
 
 class _TodoListViewState extends State<TodoListView> {
-  String _filter = 'all'; // 'all', 'active', 'completed'
+  String _filter = 'all'; // 'all', 'active', 'overdue', 'today', 'completed'
+  String _sortBy = 'priority'; // 'priority', 'dueDate', 'created'
 
   @override
   Widget build(BuildContext context) {
@@ -21,36 +23,115 @@ class _TodoListViewState extends State<TodoListView> {
 
     if (_filter == 'active') {
       filteredList = provider.todos.where((t) => !t.isCompleted).toList();
+    } else if (_filter == 'overdue') {
+      filteredList = provider.todos.where((t) => t.isOverdue).toList();
+    } else if (_filter == 'today') {
+      filteredList = provider.todos.where((t) => !t.isCompleted && t.isDueToday).toList();
     } else if (_filter == 'completed') {
       filteredList = provider.todos.where((t) => t.isCompleted).toList();
     } else {
       filteredList = List.from(provider.todos);
     }
 
-    // 排序：未完成在前，高优先级在前
+    // 排序逻辑
     filteredList.sort((a, b) {
       if (a.isCompleted != b.isCompleted) {
         return a.isCompleted ? 1 : -1;
       }
-      return b.priority.value.compareTo(a.priority.value);
+      if (_sortBy == 'dueDate') {
+        if (a.hasDueDate && b.hasDueDate) {
+          return a.dueDate!.compareTo(b.dueDate!);
+        } else if (a.hasDueDate) {
+          return -1;
+        } else if (b.hasDueDate) {
+          return 1;
+        }
+        return b.priority.value.compareTo(a.priority.value);
+      } else if (_sortBy == 'created') {
+        final aTime = a.created ?? DateTime.fromMillisecondsSinceEpoch(0);
+        final bTime = b.created ?? DateTime.fromMillisecondsSinceEpoch(0);
+        return bTime.compareTo(aTime);
+      } else {
+        return b.priority.value.compareTo(a.priority.value);
+      }
     });
+
+    final overdueCount = provider.todos.where((t) => t.isOverdue).length;
+    final todayCount = provider.todos.where((t) => !t.isCompleted && t.isDueToday).length;
 
     return Column(
       children: [
-        // 筛选标签栏 (Neo-Brutalism Filters)
+        // 筛选与排序栏 (Neo-Brutalism Filters & Sort)
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           decoration: const BoxDecoration(
             color: Colors.white,
             border: Border(bottom: BorderSide(color: Colors.black, width: 2)),
           ),
           child: Row(
             children: [
-              _buildFilterChip('ALL (${provider.todos.length})', 'all'),
+              Expanded(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      _buildFilterChip('ALL (${provider.todos.length})', 'all'),
+                      const SizedBox(width: 8),
+                      _buildFilterChip('TODO (${provider.todos.where((t) => !t.isCompleted).length})', 'active'),
+                      if (overdueCount > 0) ...[
+                        const SizedBox(width: 8),
+                        _buildFilterChip(
+                          '⚠️ 逾期 ($overdueCount)',
+                          'overdue',
+                          activeColor: const Color(0xFFFCA5A5),
+                        ),
+                      ],
+                      if (todayCount > 0) ...[
+                        const SizedBox(width: 8),
+                        _buildFilterChip(
+                          '⏰ 今天 ($todayCount)',
+                          'today',
+                          activeColor: const Color(0xFFFDE047),
+                        ),
+                      ],
+                      const SizedBox(width: 8),
+                      _buildFilterChip('DONE (${provider.todos.where((t) => t.isCompleted).length})', 'completed'),
+                    ],
+                  ),
+                ),
+              ),
               const SizedBox(width: 8),
-              _buildFilterChip('TODO (${provider.todos.where((t) => !t.isCompleted).length})', 'active'),
-              const SizedBox(width: 8),
-              _buildFilterChip('DONE (${provider.todos.where((t) => t.isCompleted).length})', 'completed'),
+              // 排序下拉框
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  border: Border.all(color: Colors.black, width: 1.5),
+                  borderRadius: BorderRadius.circular(4),
+                  boxShadow: const [BoxShadow(color: Colors.black, offset: Offset(1.5, 1.5))],
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: _sortBy,
+                    isDense: true,
+                    icon: const Icon(Icons.swap_vert, size: 16, color: Colors.black),
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.black,
+                      fontFamily: 'monospace',
+                    ),
+                    items: const [
+                      DropdownMenuItem(value: 'priority', child: Text('排序: 优先级')),
+                      DropdownMenuItem(value: 'dueDate', child: Text('排序: 截止日')),
+                      DropdownMenuItem(value: 'created', child: Text('排序: 创建时间')),
+                    ],
+                    onChanged: (val) {
+                      if (val != null) setState(() => _sortBy = val);
+                    },
+                  ),
+                ),
+              ),
             ],
           ),
         ),
@@ -97,14 +178,17 @@ class _TodoListViewState extends State<TodoListView> {
                       margin: const EdgeInsets.only(bottom: 8),
                       decoration: BoxDecoration(
                         color: Colors.white,
-                        border: Border.all(color: Colors.black, width: 2),
+                        border: Border.all(
+                          color: item.isOverdue ? const Color(0xFFEF4444) : Colors.black,
+                          width: 2,
+                        ),
                         borderRadius: BorderRadius.circular(6),
                         boxShadow: const [
                           BoxShadow(color: Colors.black, offset: Offset(2, 2)),
                         ],
                       ),
                       child: ListTile(
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                         leading: InkWell(
                           onTap: () {
                             provider.changeTaskStatus(
@@ -146,12 +230,25 @@ class _TodoListViewState extends State<TodoListView> {
                             color: item.isCompleted ? Colors.grey.shade500 : Colors.black,
                           ),
                         ),
-                        subtitle: item.description.isNotEmpty
-                            ? Text(
-                                item.description,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                        subtitle: (item.description.isNotEmpty || item.hasDueDate)
+                            ? Padding(
+                                padding: const EdgeInsets.only(top: 5.0),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    if (item.description.isNotEmpty)
+                                      Text(
+                                        item.description,
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                                      ),
+                                    if (item.description.isNotEmpty && item.hasDueDate)
+                                      const SizedBox(height: 5),
+                                    if (item.hasDueDate)
+                                      DueDateBadge(todo: item, compact: true),
+                                  ],
+                                ),
                               )
                             : null,
                         trailing: Row(
@@ -222,14 +319,16 @@ class _TodoListViewState extends State<TodoListView> {
     );
   }
 
-  Widget _buildFilterChip(String label, String value) {
+  Widget _buildFilterChip(String label, String value, {Color? activeColor}) {
     final isSelected = _filter == value;
+    final defaultBg = activeColor ?? const Color(0xFFFEF08A);
+
     return InkWell(
       onTap: () => setState(() => _filter = value),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFFFEF08A) : Colors.white,
+          color: isSelected ? defaultBg : Colors.white,
           border: Border.all(color: Colors.black, width: 1.5),
           borderRadius: BorderRadius.circular(4),
           boxShadow: isSelected ? const [BoxShadow(color: Colors.black, offset: Offset(1.5, 1.5))] : null,

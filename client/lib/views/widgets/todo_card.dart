@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/todo.dart';
 import '../../providers/todo_provider.dart';
+import 'due_date_badge.dart';
 import 'todo_dialog.dart';
 
 class TodoCard extends StatelessWidget {
@@ -160,23 +161,9 @@ class TodoCard extends StatelessWidget {
               ],
 
               // 截止日期
-              if (todo.dueDate != null && todo.dueDate!.isNotEmpty) ...[
+              if (todo.hasDueDate) ...[
                 const SizedBox(height: 8),
-                Row(
-                  children: [
-                    const Icon(Icons.calendar_today_outlined, size: 11, color: Colors.black54),
-                    const SizedBox(width: 4),
-                    Text(
-                      todo.dueDate!,
-                      style: const TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        fontFamily: 'monospace',
-                        color: Colors.black54,
-                      ),
-                    ),
-                  ],
-                ),
+                DueDateBadge(todo: todo),
               ],
             ],
           ),
